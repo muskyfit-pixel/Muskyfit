@@ -172,29 +172,6 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
                   {isAiSearching ? 'Identifying...' : 'AI Identify'}
                 </button>
               </div>
-              
-              <div className="space-y-4">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Database Results</p>
-                <div className="bg-slate-900 rounded-[2rem] border border-slate-800 overflow-hidden divide-y divide-slate-800/50 shadow-2xl">
-                    {FOOD_DATABASE.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 8).map(food => (
-                      <button key={food.id} onClick={() => handleAddFood(food)} className="w-full text-left p-6 hover:bg-slate-800 flex justify-between items-center transition-colors group">
-                        <div>
-                          <p className="font-bold text-white text-lg group-hover:text-cyan-400 transition">{food.name}</p>
-                          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-1">{food.servingSize}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-black text-white italic">{food.calories}</p>
-                          <p className="text-[8px] text-slate-600 font-black uppercase">Kcal</p>
-                        </div>
-                      </button>
-                    ))}
-                    {FOOD_DATABASE.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-                      <div className="p-12 text-center">
-                        <p className="text-slate-500 italic text-sm">No exact matches in database. Use "AI Identify" for best results.</p>
-                      </div>
-                    )}
-                </div>
-              </div>
            </div>
         </div>
       )}
