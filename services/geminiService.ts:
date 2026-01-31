@@ -1,36 +1,44 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { IntakeData, Meal, WorkoutDay, MacroSplit, FoodItem, DailyLog, WeeklyCheckIn } from "../types";
 
-// Initialize AI directly with the environment variable
+// Always initialize with the latest SDK pattern
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
+/**
+ * Generates a weekly performance report based on client data
+ */
 export async function generatePerformanceReport(clientName: string, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<string> {
   const prompt = `
     Analyze fitness data for client "${clientName}".
-    Data: ${JSON.stringify(logs.slice(0, 7))}
-    Check-in: ${JSON.stringify(checkIn)}
+    Recent Logs (7 days): ${JSON.stringify(logs.slice(0, 7))}
+    Subjective Check-in: ${JSON.stringify(checkIn)}
     
-    TASK: Write a professional, encouraging coaching report (approx 200 words).
-    - Summarize compliance (Calories, Protein, Steps).
-    - Provide 3 clear actionable points for next week.
-    - Use British English.
+    TASK: Write an elite, high-performance coaching report in British English.
+    - Be assertive yet encouraging.
+    - Summarize compliance: Calories (Target vs Actual), Protein, and Step Consistency.
+    - Provide 3 "Needle-Moving" actionable points for the next 7 days.
+    - Keep it under 200 words.
   `;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
     });
-    return response.text || "Report generation failed.";
+    return response.text || "Report generation failed. Please contact your coach directly.";
   } catch (e) {
     console.error("AI Report Error:", e);
     return "Error generating report. Please check back later.";
   }
 }
 
+/**
+ * Finds macro-equivalent alternatives for meals
+ */
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
   const prompt = `
-    Find 3 alternative meals for "${meal.name}" that have similar macros (Cals:${meal.macros.calories}, P:${meal.macros.p}, C:${meal.macros.c}, F:${meal.macros.f}).
-    Keep them simple and healthy. Provide only the names of the 3 alternatives.
+    Find 3 alternative meal ideas for "${meal.name}" with similar macros:
+    Calories: ${meal.macros.calories} | P: ${meal.macros.p} | C: ${meal.macros.c} | F: ${meal.macros.f}.
+    Provide ONLY a bulleted list of the 3 meal names.
   `;
   try {
     const response = await ai.models.generateContent({
@@ -39,10 +47,13 @@ export async function getMealAlternatives(meal: Meal): Promise<string[]> {
     });
     return response.text.split('\n').filter(s => s.trim().length > 0).slice(0, 3);
   } catch (e) {
-    return ["Grilled Chicken Salad", "Egg & Avocado Wrap", "Lentil Soup"];
+    return ["Grilled Salmon with Asparagus", "Turkey & Quinoa Bowl", "Tofu Stir-fry"];
   }
 }
 
+/**
+ * The "Big Brain" of the app: Bespoke Plan Generation
+ */
 export async function generatePersonalizedPlan(data: IntakeData): Promise<{ 
   trainingDayMacros: MacroSplit, 
   restDayMacros: MacroSplit, 
@@ -51,32 +62,39 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
   coachAdvice: string
 }> {
   const systemInstruction = `
-    ACT AS THE HEAD COACH OF MUSKYFIT (Elite UK-based coaching). 
-    NICHE: Asian Men (30-50) professionals with high-stress desk jobs.
-
-    STRICT PROGRAMMING PILLARS FOR THIS NICHE:
-    1. THE "MUSKY V-TAPER": High priority on Medial Delts and Lat Width to create a powerful silhouette.
-    2. POSTURAL CORRECTION: Focus on "Desk Hunch" fixes.
-    3. CULTURAL NUTRITION: Integrate South Asian/East Asian staples (Dhal, Paneer, Lean Meats, Basmati) in a macro-friendly way.
-
-    COMMUNICATION STYLE: Assertive, professional, British English.
+    You are the MUSKYFIT MASTER COACH. 
+    Expertise: Elite Body Transformation for Asian Men (30-50 professionals).
+    
+    NICHE SPECIFICS:
+    - Target: High-stress desk jobs (Bankers, Tech, Executives).
+    - Aesthetic Goal: The "Musky V-Taper" (Emphasis on lateral delts, upper back width, and core tightness).
+    - Posture: Active correction for anterior pelvic tilt and rounded shoulders (desk posture).
+    - Nutrition: High-protein cultural integration. Prioritize Basmati rice, Paneer (if veg), Lean Meats, and Dal in macro-friendly formats.
+    
+    STYLE: Professional, British English, high-authority.
   `;
 
   const userPrompt = `
-    Create a bespoke 4-week "Block 1: Foundation" plan for ${data.name}. 
-    Goal: ${data.goal.replace('_', ' ')}. 
-    Generate ${data.trainingDaysPerWeek} full sessions.
-    Dietary style: ${data.culturalPreference} (${data.dietPreference}).
+    Create a BESPOKE 4-week high-performance protocol for ${data.name}.
+    - Goal: ${data.goal.replace('_', ' ')}
+    - Current Weight: ${data.weight}kg | Height: ${data.height}cm
+    - Training Frequency: ${data.trainingDaysPerWeek} days/week
+    - Dietary Style: ${data.culturalPreference} (${data.dietPreference})
+    - Restrictions: ${data.religiousExclusions || 'None'} | Allergies: ${data.allergies || 'None'}
+    
+    Return a structured JSON including training/rest macros, a full day's meal plan (4 meals), and a ${data.trainingDaysPerWeek}-day workout split focusing on the Musky V-Taper.
   `;
 
   try {
+    // We use gemini-3-pro-preview for complex plan generation to ensure high-quality reasoning.
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview", 
       contents: userPrompt,
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingBudget: 12000 },
+        // Reserve significant thinking budget for complex programming logic
+        thinkingConfig: { thinkingBudget: 16000 },
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -141,15 +159,19 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
       }
     });
 
-    return JSON.parse(response.text || '{}');
+    const parsed = JSON.parse(response.text || '{}');
+    return parsed;
   } catch (e) {
     console.error("Plan Generation Error:", e);
     throw e;
   }
 }
 
+/**
+ * Instant AI Food identification
+ */
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
-  const prompt = `Nutritional data for one serving of food: "${query}".`;
+  const prompt = `Identify this food and return its macronutrients for 100g: "${query}".`;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
