@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { IntakeData, Meal, WorkoutDay, MacroSplit, FoodItem, DailyLog, WeeklyCheckIn } from "../types";
 
-// Always initialize with the latest SDK pattern
+// Always initialize with the latest SDK pattern and named parameter
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 /**
@@ -17,7 +17,7 @@ export async function generatePerformanceReport(clientName: string, logs: DailyL
     - Be assertive yet encouraging.
     - Summarize compliance: Calories (Target vs Actual), Protein, and Step Consistency.
     - Provide 3 "Needle-Moving" actionable points for the next 7 days.
-    - Keep it under 200 words.
+    - Style: MuskyFit Brand Voice (Professional, Elite, Direct).
   `;
   try {
     const response = await ai.models.generateContent({
@@ -82,19 +82,19 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
     - Dietary Style: ${data.culturalPreference} (${data.dietPreference})
     - Restrictions: ${data.religiousExclusions || 'None'} | Allergies: ${data.allergies || 'None'}
     
-    Return a structured JSON including training/rest macros, a full day's meal plan (4 meals), and a ${data.trainingDaysPerWeek}-day workout split focusing on the Musky V-Taper.
+    Return a structured JSON including training/rest macros, a full day's meal plan (4 meals), and a ${data.trainingDaysPerWeek}-day workout split focusing on the Musky V-Taper and posture correction.
   `;
 
   try {
-    // We use gemini-3-pro-preview for complex plan generation to ensure high-quality reasoning.
+    // Using Gemini 3 Pro for complex logic and reasoning
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview", 
       contents: userPrompt,
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        // Reserve significant thinking budget for complex programming logic
-        thinkingConfig: { thinkingBudget: 16000 },
+        // Setting a high thinking budget to ensure deep reasoning on postural and cultural needs
+        thinkingConfig: { thinkingBudget: 32768 }, 
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -159,8 +159,7 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
       }
     });
 
-    const parsed = JSON.parse(response.text || '{}');
-    return parsed;
+    return JSON.parse(response.text || '{}');
   } catch (e) {
     console.error("Plan Generation Error:", e);
     throw e;
@@ -168,7 +167,7 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
 }
 
 /**
- * Instant AI Food identification
+ * Instant AI Food identification for the Daily Log
  */
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
   const prompt = `Identify this food and return its macronutrients for 100g: "${query}".`;
