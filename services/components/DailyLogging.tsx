@@ -63,8 +63,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
     }
   };
 
-  const stepGoal = 10000;
-  const stepPercent = Math.min((steps / stepGoal) * 100, 100);
+  const stepPercent = Math.min((steps / 10000) * 100, 100);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-32 px-4 sm:px-0">
@@ -102,8 +101,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
       </div>
 
       <div className="space-y-6">
-        {['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'].map((mId) => {
-          const sectionId = mId as MealCategory;
+        {(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'] as MealCategory[]).map((sectionId) => {
           const sectionFoods = selectedFoods.filter(f => f.category === sectionId);
           const sTotal = sectionFoods.reduce((acc, f) => acc + f.calories, 0);
 
@@ -123,7 +121,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
                     <button onClick={() => setSelectedFoods(prev => prev.filter(f => f.logId !== food.logId))} className="text-red-500 text-lg font-black">×</button>
                   </div>
                 ))}
-                <button onClick={() => setCurrentLoggingMeal(sectionId)} className="w-full text-left px-8 py-4 text-xs font-black text-cyan-500 uppercase tracking-widest">+ Add Food</button>
+                <button onClick={() => setCurrentLoggingMeal(sectionId)} className="w-full text-left px-8 py-4 text-xs font-black text-cyan-500 uppercase tracking-widest transition hover:bg-slate-800">+ Add Food</button>
               </div>
             </div>
           );
@@ -131,31 +129,71 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
       </div>
 
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-6">
-        <button onClick={() => onSave({ date: new Date().toISOString().split('T')[0], steps, water, caloriesConsumed: totals.calories, proteinConsumed: totals.p, carbsConsumed: totals.c, fatsConsumed: totals.f, workoutCompleted: false, foods: selectedFoods })} className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic border-4 border-slate-900">
+        <button 
+          onClick={() => onSave({ 
+            date: new Date().toISOString().split('T')[0], 
+            steps, 
+            water, 
+            caloriesConsumed: totals.calories, 
+            proteinConsumed: totals.p, 
+            carbsConsumed: totals.c, 
+            fatsConsumed: totals.f, 
+            workoutCompleted: false, 
+            foods: selectedFoods 
+          })} 
+          className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic border-4 border-slate-900 active:scale-95"
+        >
           Save Daily Logs
         </button>
       </div>
 
       {currentLoggingMeal && (
-        <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl p-6 md:p-12">
-           <div className="max-w-4xl mx-auto space-y-8">
+        <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl p-6 md:p-12 overflow-y-auto">
+           <div className="max-w-4xl mx-auto space-y-8 pb-20">
               <div className="flex justify-between items-center">
-                 <h2 className="text-4xl font-black text-white italic uppercase">Logging {currentLoggingMeal}</h2>
-                 <button onClick={() => setCurrentLoggingMeal(null)} className="text-slate-500 font-black text-4xl">×</button>
+                 <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Logging {currentLoggingMeal}</h2>
+                 <button onClick={() => setCurrentLoggingMeal(null)} className="text-slate-500 hover:text-white font-black text-4xl transition">×</button>
               </div>
               <div className="flex flex-col md:flex-row gap-4">
-                <input autoFocus type="text" placeholder="Search Database..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="flex-1 p-6 bg-slate-900 border border-slate-700 rounded-2xl text-white text-xl outline-none focus:border-cyan-500" />
-                <button onClick={handleAiSearch} disabled={isAiSearching} className="px-8 py-4 bg-cyan-600 text-white rounded-2xl font-black text-[10px] uppercase disabled:opacity-50">
+                <input 
+                  autoFocus 
+                  type="text" 
+                  placeholder="Search Database or use AI..." 
+                  value={searchTerm} 
+                  onChange={e => setSearchTerm(e.target.value)} 
+                  onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
+                  className="flex-1 p-6 bg-slate-900 border border-slate-700 rounded-2xl text-white text-xl outline-none focus:border-cyan-500 transition-all shadow-inner" 
+                />
+                <button 
+                  onClick={handleAiSearch} 
+                  disabled={isAiSearching || !searchTerm} 
+                  className="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-lg"
+                >
                   {isAiSearching ? 'Identifying...' : 'AI Identify'}
                 </button>
               </div>
-              <div className="bg-slate-900 rounded-2xl border border-slate-800 max-h-[50vh] overflow-y-auto divide-y divide-slate-800">
-                  {FOOD_DATABASE.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 8).map(food => (
-                    <button key={food.id} onClick={() => handleAddFood(food)} className="w-full text-left p-6 hover:bg-slate-800 flex justify-between items-center">
-                      <p className="font-bold text-white text-lg">{food.name}</p>
-                      <p className="text-xl font-black text-white">{food.calories}kcal</p>
-                    </button>
-                  ))}
+              
+              <div className="space-y-4">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Database Results</p>
+                <div className="bg-slate-900 rounded-[2rem] border border-slate-800 overflow-hidden divide-y divide-slate-800/50 shadow-2xl">
+                    {FOOD_DATABASE.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 8).map(food => (
+                      <button key={food.id} onClick={() => handleAddFood(food)} className="w-full text-left p-6 hover:bg-slate-800 flex justify-between items-center transition-colors group">
+                        <div>
+                          <p className="font-bold text-white text-lg group-hover:text-cyan-400 transition">{food.name}</p>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-1">{food.servingSize}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-white italic">{food.calories}</p>
+                          <p className="text-[8px] text-slate-600 font-black uppercase">Kcal</p>
+                        </div>
+                      </button>
+                    ))}
+                    {FOOD_DATABASE.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                      <div className="p-12 text-center">
+                        <p className="text-slate-500 italic text-sm">No exact matches in database. Use "AI Identify" for best results.</p>
+                      </div>
+                    )}
+                </div>
               </div>
            </div>
         </div>
