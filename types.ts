@@ -50,7 +50,7 @@ export interface ProgressPhoto {
 export interface VaultArticle {
   id: string;
   title: string;
-  category: 'NUTRITION' | 'TRAINING' | 'MINDSET' | 'BIO-HACKING' | 'LONGEVITY';
+  category: 'NUTRITION' | 'TRAINING' | 'MINDSET' | 'LIFESTYLE' | 'LONGEVITY' | 'BIO-HACKING';
   summary: string;
   icon: string;
 }
@@ -94,8 +94,6 @@ export interface IntakeData {
   trainingHistory: string;
 }
 
-export type FoodCategory = 'INDIAN' | 'WESTERN' | 'SNACKS' | 'ALCOHOL' | 'DRINK' | 'DAIRY';
-
 export interface FoodItem {
   id: string;
   name: string;
@@ -103,10 +101,9 @@ export interface FoodItem {
   protein: number;
   carbs: number;
   fats: number;
-  type: FoodCategory;
   servingSize: string;
+  type?: string;
   suitableMeals?: MealCategory[];
-  instructions?: string;
 }
 
 export interface LoggedFood extends FoodItem {
@@ -127,7 +124,6 @@ export interface Meal {
   ingredients: string[];
   instructions: string;
   macros: MacroSplit;
-  substitutes: string[];
 }
 
 export interface WorkoutExercise {
@@ -135,11 +131,7 @@ export interface WorkoutExercise {
   name: string;
   sets: number;
   reps: string;
-  targetRpe: number;
-  tempo: string;
   notes: string;
-  videoUrl?: string;
-  isWarmup?: boolean;
 }
 
 export interface WorkoutDay {
@@ -152,7 +144,6 @@ export interface WorkoutDay {
 export interface SetLog {
   weight: number;
   reps: number;
-  rpe: number;
   completed: boolean;
 }
 
@@ -164,21 +155,16 @@ export interface ExerciseLog {
 export interface DailyLog {
   date: string;
   steps: number;
-  water: number;
   caloriesConsumed: number;
   proteinConsumed: number;
   carbsConsumed: number;
   fatsConsumed: number;
   workoutCompleted: boolean;
-  workoutId?: string;
   foods?: LoggedFood[];
-  exerciseLogs?: ExerciseLog[];
-  readinessScore?: number;
-  rituals?: {
+  habits?: {
     mobility: boolean;
     supplements: boolean;
-    morningSunlight: boolean;
-    noPhoneBeforeBed: boolean;
+    water: boolean;
   };
 }
 
