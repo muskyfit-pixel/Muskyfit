@@ -17,7 +17,7 @@ import StrengthMatrix from './components/StrengthMatrix';
 import ResourceRadar from './components/ResourceRadar';
 import { generatePersonalizedPlan } from './services/geminiService';
 import { MOCK_CLIENTS } from './constants';
-import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn, WeeklyReview } from './types';
+import { Client, IntakeData } from './types';
 
 const App = () => {
   const [role, setRole] = useState<'COACH' | 'CLIENT'>('CLIENT');
@@ -30,8 +30,7 @@ const App = () => {
   });
   
   const [currentClientId, setCurrentClientId] = useState<string | null>(() => {
-    const saved = localStorage.getItem('muskyfit_active_client');
-    return saved || (clients.length > 0 ? clients[0].id : null);
+    return localStorage.getItem('muskyfit_active_client') || (clients.length > 0 ? clients[0].id : null);
   });
 
   useEffect(() => {
@@ -55,18 +54,13 @@ const App = () => {
         id: 'u_' + newId, 
         name: data.name, 
         role: 'CLIENT', 
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${data.name}` 
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}` 
       },
       intake: data,
       planStatus: 'CONSULTATION_SUBMITTED',
       currentWorkoutIndex: 0,
       exerciseProgress: {},
-      personalBests: [
-        { exercise: 'Bench Press', weight: 0, date: '', history: [] },
-        { exercise: 'Squat', weight: 0, date: '', history: [] },
-        { exercise: 'Deadlift', weight: 0, date: '', history: [] },
-        { exercise: 'Shoulder Press', weight: 0, date: '', history: [] }
-      ],
+      personalBests: [],
       logs: [],
       checkIns: [],
       photos: [],
@@ -79,218 +73,136 @@ const App = () => {
   };
 
   const handleFinaliseProtocol = async (clientId: string) => {
-    const client = clients.find(c => c.id === clientId);
-    if (!client || !client.intake) return;
-    
     setIsLoading(true);
     try {
-      const plan = await generatePersonalizedPlan(client.intake);
-      setClients(prev => prev.map(c => c.id === clientId ? {
-        ...c,
-        plan,
-        planStatus: 'PLAN_READY'
-      } : c));
+      const client = clients.find(c => c.id === clientId);
+      if (client?.intake) {
+        const plan = await generatePersonalizedPlan(client.intake);
+        if (plan) {
+          setClients(prev => prev.map(c => c.id === clientId ? { ...c, plan, planStatus: 'PLAN_READY' } : c));
+        }
+      }
     } catch (e) {
-      console.error("Failed to generate plan", e);
-      alert("AI Protocol Deployment Failed. Please verify your API configuration.");
+      console.error("Plan generation failed:", e);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSendReview = (clientId: string, review: WeeklyReview) => {
-    setClients(prev => prev.map(c => {
-      if (c.id === clientId) {
-        const newCheckIns = [...c.checkIns];
-        if (newCheckIns.length > 0) {
-          newCheckIns[0] = { ...newCheckIns[0], review };
-        }
-        return { 
-          ...c, 
-          checkIns: newCheckIns, 
-          performanceStatus: review.status === 'RED' ? 'OFF_TRACK' : 'ON_TRACK' 
-        };
-      }
-      return c;
-    }));
-  };
-
-  const handleLogSave = (log: DailyLog) => {
-    setClients(prev => prev.map(c => c.id === currentClientId ? { ...c, logs: [log, ...c.logs] } : c));
-    setActiveTab('client-dashboard');
-  };
-
-  const handleCheckInSubmit = (checkIn: WeeklyCheckIn) => {
-    setClients(prev => prev.map(c => c.id === currentClientId ? { ...c, checkIns: [checkIn, ...c.checkIns] } : c));
-    setActiveTab('performance');
-  };
-
-  const handleWorkoutFinish = (exerciseLogs: ExerciseLog[]) => {
-    if (!currentClient || !currentClient.plan) return;
-    
-    const workoutCount = currentClient.plan.workoutSplit.length;
-    const nextIndex = (currentClient.currentWorkoutIndex + 1) % workoutCount;
-    
-    const updatedPBs = [...(currentClient.personalBests || [])];
-    const updatedProgress = { ...currentClient.exerciseProgress };
-    const today = new Date().toISOString().split('T')[0];
-    
-    exerciseLogs.forEach(log => {
-      const currentWorkoutDay = currentClient.plan!.workoutSplit[currentClient.currentWorkoutIndex];
-      const exerciseName = currentWorkoutDay.exercises.find(e => e.id === log.exerciseId)?.name;
-      
-      const maxWeightThisSession = Math.max(...log.sets.filter(s => s.completed).map(s => s.weight), 0);
-      
-      if (maxWeightThisSession > 0) {
-        updatedProgress[log.exerciseId] = maxWeightThisSession;
-      }
-
-      if (exerciseName) {
-        const pbIdx = updatedPBs.findIndex(p => 
-          p.exercise.toLowerCase().includes(exerciseName.toLowerCase()) || 
-          exerciseName.toLowerCase().includes(p.exercise.toLowerCase())
-        );
-        
-        if (pbIdx !== -1 && maxWeightThisSession > updatedPBs[pbIdx].weight) {
-          updatedPBs[pbIdx] = {
-            ...updatedPBs[pbIdx],
-            weight: maxWeightThisSession,
-            date: today,
-            history: [...updatedPBs[pbIdx].history, { weight: maxWeightThisSession, date: today }]
-          };
-        }
-      }
-    });
-
-    const newLog: DailyLog = {
-      date: today,
-      steps: 0, water: 0, caloriesConsumed: 0, proteinConsumed: 0, carbsConsumed: 0, fatsConsumed: 0,
-      workoutCompleted: true, exerciseLogs, workoutId: currentClient.plan.workoutSplit[currentClient.currentWorkoutIndex].id
-    };
-
-    setClients(prev => prev.map(c => c.id === currentClientId ? { 
-      ...c, 
-      currentWorkoutIndex: nextIndex,
-      logs: [newLog, ...c.logs],
-      personalBests: updatedPBs,
-      exerciseProgress: updatedProgress
-    } : c));
-    setActiveTab('client-dashboard');
-  };
-
   const renderContent = () => {
     if (role === 'COACH') {
-      return <CoachDashboard 
-        clients={clients} 
-        pendingClient={clients.find(c => c.planStatus === 'CONSULTATION_SUBMITTED') || null} 
-        onFinalise={handleFinaliseProtocol} 
-        onSendReview={handleSendReview}
-        isLoading={isLoading} 
-      />;
+      return (
+        <CoachDashboard 
+          clients={clients} 
+          pendingClient={clients.find(c => c.planStatus === 'CONSULTATION_SUBMITTED') || null} 
+          onFinalise={handleFinaliseProtocol} 
+          onSendReview={(id, rev) => setClients(prev => prev.map(c => c.id === id ? {...c, checkIns: [{...c.checkIns[0], review: rev}, ...c.checkIns.slice(1)]} : c))}
+          isLoading={isLoading} 
+        />
+      );
     }
     
+    // Step 1: Intake if no client or plan
     if (!currentClient || currentClient.planStatus === 'NONE') {
-      return <IntakeForm onSubmit={handleIntakeSubmit} isLoading={isLoading} />;
-    }
-
-    if (currentClient.planStatus === 'CONSULTATION_SUBMITTED') {
       return (
-        <div className="max-w-3xl mx-auto text-center py-24 px-4">
-          <div className="mb-10 inline-flex items-center justify-center w-28 h-28 rounded-full bg-slate-900 border-4 border-cyan-500 cyan-glow animate-pulse">
-            <span className="text-5xl">🧬</span>
+        <div className="space-y-12">
+          <IntakeForm onSubmit={handleIntakeSubmit} isLoading={isLoading} />
+          <div className="text-center pb-20">
+             <button 
+               onClick={() => setRole('COACH')}
+               className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-cyan-500 transition border border-slate-800 px-4 py-2 rounded-lg"
+             >
+               Skip to Admin Command Center
+             </button>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6 uppercase tracking-tighter italic">Building Protocol</h2>
-          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Coach Arjun is analyzing your biometrics to build your bespoke protocol. Your elite roadmap is being synthesized.</p>
         </div>
       );
     }
 
+    // Step 2: Waiting for approval
+    if (currentClient.planStatus === 'CONSULTATION_SUBMITTED') {
+      return (
+        <div className="max-w-3xl mx-auto text-center py-32 px-4">
+          <div className="mb-10 inline-flex items-center justify-center w-28 h-28 rounded-full bg-slate-900 border-4 border-cyan-500 shadow-[0_0_40px_rgba(6,182,212,0.3)] animate-pulse">
+            <span className="text-5xl">🥋</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-white mb-6 uppercase tracking-tighter italic">Reviewing Intake</h2>
+          <p className="text-lg text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
+            Welcome to MUSKYFIT, {currentClient.profile.name}. Your profile is now being audited. Coach will deploy your 12-week high-performance protocol shortly.
+          </p>
+          <div className="flex justify-center gap-4">
+            <button onClick={() => setRole('COACH')} className="bg-white text-black px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-cyan-500 hover:text-white transition">Approve as Coach</button>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 3: Full App Dashboard
     switch (activeTab) {
-      case 'log': 
-        return <DailyLogging onSave={handleLogSave} targetMacros={currentClient.plan?.trainingDayMacros} />;
-      case 'workout': 
-        return <WorkoutTracker 
-          currentWorkout={currentClient.plan!.workoutSplit[currentClient.currentWorkoutIndex]} 
-          previousProgress={currentClient.exerciseProgress} 
-          onFinish={handleWorkoutFinish} 
-        />;
-      case 'check-in':
-        return <WeeklyCheckInForm onSubmit={handleCheckInSubmit} />;
-      case 'performance':
-        return <WeeklyReviewView reviews={currentClient.checkIns.filter(c => c.review).map(c => c.review!)} />;
-      case 'concierge': 
-        return <MuskyFitSupport client={currentClient} />;
-      case 'radar':
-        return <ResourceRadar />;
-      case 'vault': 
-        return <MuskyFitVault />;
-      case 'photos': 
-        return <TransformationHub photos={currentClient.photos} onUpload={(p) => setClients(prev => prev.map(c => c.id === currentClientId ? {...c, photos: [...c.photos, p]} : c))} />;
-      case 'strength':
-        return <StrengthMatrix pbs={currentClient.personalBests || []} />;
-      case 'plans':
-        return <PlanDisplay 
-          mealPlan={currentClient.plan!.mealPlan} 
-          workoutSplit={currentClient.plan!.workoutSplit} 
-          trainingDayMacros={currentClient.plan!.trainingDayMacros}
-          restDayMacros={currentClient.plan!.restDayMacros}
-          coachAdvice={currentClient.plan!.coachAdvice}
-        />;
+      case 'log': return <DailyLogging onSave={(log) => setClients(prev => prev.map(c => c.id === currentClientId ? {...c, logs: [log, ...c.logs]} : c))} targetMacros={currentClient.plan?.trainingDayMacros} />;
+      case 'workout': return currentClient.plan ? <WorkoutTracker currentWorkout={currentClient.plan.workoutSplit[currentClient.currentWorkoutIndex]} previousProgress={currentClient.exerciseProgress} onFinish={() => setActiveTab('client-dashboard')} /> : null;
+      case 'check-in': return <WeeklyCheckInForm onSubmit={(ci) => setClients(prev => prev.map(c => c.id === currentClientId ? {...c, checkIns: [ci, ...c.checkIns]} : c))} />;
+      case 'performance': return <WeeklyReviewView reviews={currentClient.checkIns.filter(c => c.review).map(c => c.review!)} />;
+      case 'concierge': return <MuskyFitSupport client={currentClient} />;
+      case 'radar': return <ResourceRadar />;
+      case 'vault': return <MuskyFitVault />;
+      case 'photos': return <TransformationHub photos={currentClient.photos} onUpload={(p) => setClients(prev => prev.map(c => c.id === currentClientId ? {...c, photos: [...c.photos, p]} : c))} />;
+      case 'strength': return <StrengthMatrix pbs={currentClient.personalBests} />;
+      case 'plans': return currentClient.plan ? <PlanDisplay mealPlan={currentClient.plan.mealPlan} workoutSplit={currentClient.plan.workoutSplit} trainingDayMacros={currentClient.plan.trainingDayMacros} coachAdvice={currentClient.plan.coachAdvice} /> : null;
       default: 
         return (
           <div className="space-y-10 px-4 md:px-0 pb-32 animate-in fade-in duration-700">
-            <div className="flex justify-between items-end">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                <div>
-                  <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Status Dashboard</h2>
-                  <p className="text-cyan-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2">Executive Performance Cockpit</p>
+                  <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase">Status Cockpit</h2>
+                  <p className="text-cyan-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2">Executive Performance Hub</p>
                </div>
-               <div className="bg-slate-900 px-6 py-3 rounded-2xl border border-slate-800 text-right">
-                  <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Active Goal</p>
-                  <p className="text-xs font-black text-white italic">{currentClient.intake?.goal.replace(/_/g, ' ')}</p>
+               <div className="bg-slate-900 px-6 py-3 rounded-2xl border border-slate-800">
+                  <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Active Client</p>
+                  <p className="text-xs font-black text-white italic">{currentClient.profile.name} • {currentClient.intake?.gender}</p>
                </div>
             </div>
 
             <ReadinessHUD 
-              score={currentClient.performanceStatus === 'ON_TRACK' ? 88 : 62} 
+              score={currentClient.performanceStatus === 'ON_TRACK' ? 88 : 42} 
               sleep={currentClient.checkIns[0]?.sleepHours || 7.5} 
-              stress={currentClient.checkIns[0]?.stressLevel > 5 ? 'High' : 'Optimal'} 
+              stress={currentClient.checkIns[0]?.stressLevel > 6 ? 'Intense' : 'Optimal'} 
             />
 
             <div className="grid lg:grid-cols-2 gap-8">
               <ClientProgressSummary logs={currentClient.logs} />
               
-              <div className="bg-slate-900 p-8 rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col justify-between">
-                 <div>
-                    <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-6 italic">Next Protocol Session</h4>
-                    <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase mb-4">
-                       {currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex].title}
+              <div className="bg-slate-900 p-8 rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col justify-between group">
+                 <div className="relative overflow-hidden">
+                    <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-6 italic">Daily Mission</h4>
+                    <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase mb-4 group-hover:text-cyan-400 transition">
+                       {currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex]?.title || 'Rest & Recovery'}
                     </h3>
                     <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                       Session {currentClient.currentWorkoutIndex + 1} of {currentClient.plan?.workoutSplit.length}. Optimized for V-Taper aesthetics.
+                       Focused on {currentClient.intake?.gender === 'FEMALE' ? 'Resilience & Lean Tone' : 'Structural Density & Power'}. Aim for perfect form.
                     </p>
                  </div>
                  <button 
                    onClick={() => setActiveTab('workout')}
-                   className="mt-8 w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:bg-cyan-500 hover:text-white transition-all shadow-xl italic"
+                   className="mt-10 w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:bg-cyan-500 hover:text-white transition-all shadow-xl italic border-b-4 border-slate-300"
                  >
-                   Initiate Training Protocol
+                   Deploy Training
                  </button>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              <div onClick={() => setActiveTab('performance')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
-                 <span className="text-2xl mb-3 block">📈</span>
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">View Performance Review</p>
-              </div>
-              <div onClick={() => setActiveTab('radar')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
-                 <span className="text-2xl mb-3 block">📡</span>
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">Scan Local Radar</p>
-              </div>
-              <div onClick={() => setActiveTab('concierge')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
-                 <span className="text-2xl mb-3 block">🤖</span>
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">AI Executive Support</p>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[
+                { id: 'log', label: 'Nutrient Log', icon: '🍛' },
+                { id: 'concierge', label: 'AI Coach', icon: '🤖' },
+                { id: 'radar', label: 'Radar', icon: '📡' },
+                { id: 'vault', label: 'Vault', icon: '💎' }
+              ].map(item => (
+                <div key={item.id} onClick={() => setActiveTab(item.id)} className="bg-slate-900 p-8 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group relative overflow-hidden">
+                   <span className="text-3xl mb-4 block group-hover:scale-125 transition duration-500">{item.icon}</span>
+                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">{item.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -298,14 +210,9 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen">
-      <Navigation 
-        role={role} 
-        setRole={setRole} 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-      />
-      <main className="max-w-7xl mx-auto py-10">
+    <div className="min-h-screen bg-[#070b14] text-slate-100">
+      <Navigation role={role} setRole={setRole} activeTab={activeTab} setActiveTab={setActiveTab} />
+      <main className="max-w-7xl mx-auto py-10 px-4 md:px-8">
         {renderContent()}
       </main>
     </div>
