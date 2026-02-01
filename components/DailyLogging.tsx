@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FOOD_DATABASE } from '../constants';
 import { searchUniversalFood } from '../services/geminiService';
@@ -21,13 +20,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [currentLoggingMeal, setCurrentLoggingMeal] = useState<MealCategory | null>(null);
   const [isAiSearching, setIsAiSearching] = useState(false);
-
-  const [rituals, setRituals] = useState({
-    mobility: false,
-    supplements: false,
-    morningSunlight: false,
-    noPhoneBeforeBed: false
-  });
+  const [rituals, setRituals] = useState({ mobility: false, supplements: false, morningSunlight: false, noPhoneBeforeBed: false });
 
   const totals = selectedFoods.reduce((acc, f) => ({
     calories: acc.calories + (f.calories || 0),
@@ -59,28 +52,27 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-32 px-4 sm:px-0 animate-in fade-in duration-700">
+    <div className="max-w-5xl mx-auto space-y-8 pb-32 px-4 sm:px-0">
       <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl sticky top-20 z-40 backdrop-blur-md">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-6">
              <div className="relative w-24 h-24 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90">
                    <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800" />
-                   <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="8" fill="transparent" className={`${remaining >= 0 ? 'text-cyan-500' : 'text-red-500'} transition-all duration-1000`} strokeDasharray={2 * Math.PI * 44} strokeDashoffset={2 * Math.PI * 44 * (totals.calories / (targetMacros.calories || 2400))} />
+                   <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="8" fill="transparent" className={`${remaining >= 0 ? 'text-cyan-500' : 'text-red-500'} transition-all`} strokeDasharray={2 * Math.PI * 44} strokeDashoffset={2 * Math.PI * 44 * (1 - Math.min(totals.calories / (targetMacros.calories || 2400), 1))} />
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
                    <p className="text-xs font-black text-slate-500 uppercase leading-none">Left</p>
                    <p className="text-xl font-black text-white leading-none mt-1">{remaining}</p>
                 </div>
              </div>
              <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Targeting Progress</p>
-                <p className="text-3xl font-black text-white">{totals.calories}<span className="text-xs text-slate-600 ml-1">kcal logged</span></p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Daily Intake</p>
+                <p className="text-3xl font-black text-white">{totals.calories}<span className="text-xs text-slate-600 ml-1">kcal</span></p>
              </div>
           </div>
-          
           <div className="flex flex-col items-end gap-2">
-             <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Steps Walked</label>
+             <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Steps</label>
              <input type="number" value={steps} onChange={e => setSteps(Number(e.target.value))} className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-white font-black text-center outline-none w-32" />
           </div>
         </div>
@@ -91,41 +83,35 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
             <h3 className="text-sm font-black text-white italic uppercase tracking-tighter mb-6">High-Performance Rituals</h3>
             <div className="space-y-3">
                {[
-                 { id: 'mobility', label: '10m Mobility/Posture', icon: '🧘' },
+                 { id: 'mobility', label: 'Mobility Routine', icon: '🧘' },
                  { id: 'supplements', label: 'Daily Supplements', icon: '💊' },
                  { id: 'morningSunlight', label: 'Morning Sunlight', icon: '☀️' },
                  { id: 'noPhoneBeforeBed', label: 'Digital Sunset', icon: '📱' }
                ].map(r => (
-                  <button 
-                    key={r.id} 
-                    onClick={() => setRituals(prev => ({ ...prev, [r.id]: !(prev as any)[r.id] }))}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${(rituals as any)[r.id] ? 'bg-cyan-600/20 border-cyan-500 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
-                  >
+                  <button key={r.id} onClick={() => setRituals(prev => ({ ...prev, [r.id]: !(prev as any)[r.id] }))} className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${(rituals as any)[r.id] ? 'bg-cyan-600/20 border-cyan-500 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>
                      <span className="text-[10px] font-black uppercase tracking-widest">{r.label}</span>
                      <span>{r.icon}</span>
                   </button>
                ))}
             </div>
          </div>
-
          <div className="md:col-span-8 space-y-6">
             {(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'] as MealCategory[]).map((sectionId) => {
               const sectionFoods = selectedFoods.filter(f => f.category === sectionId);
-              const sTotal = sectionFoods.reduce((acc, f) => acc + f.calories, 0);
               return (
                 <div key={sectionId} className="bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-xl">
                   <div className="px-8 py-5 flex justify-between items-center bg-slate-950/50 border-b border-slate-800">
-                    <h3 className="text-xs font-black text-white italic uppercase tracking-tighter">{sectionId}</h3>
-                    <p className="text-sm font-black text-cyan-500">{sTotal} kcal</p>
+                    <h3 className="text-xs font-black text-white italic uppercase">{sectionId}</h3>
+                    <p className="text-sm font-black text-cyan-500">{sectionFoods.reduce((acc, f) => acc + f.calories, 0)} kcal</p>
                   </div>
                   <div className="p-4">
                     {sectionFoods.map(food => (
-                      <div key={food.logId} className="p-4 bg-slate-950 rounded-xl mb-2 flex justify-between items-center">
+                      <div key={food.logId} className="p-4 bg-slate-950 rounded-xl mb-2 flex justify-between items-center border border-slate-800">
                         <p className="text-xs font-bold text-white">{food.name}</p>
                         <button onClick={() => setSelectedFoods(prev => prev.filter(f => f.logId !== food.logId))} className="text-red-500">×</button>
                       </div>
                     ))}
-                    <button onClick={() => setCurrentLoggingMeal(sectionId)} className="w-full text-center py-4 text-[9px] font-black text-cyan-500 uppercase tracking-widest border-2 border-dashed border-slate-800 rounded-xl hover:border-cyan-500 transition-colors">+ Add Food</button>
+                    <button onClick={() => setCurrentLoggingMeal(sectionId)} className="w-full text-center py-4 text-[9px] font-black text-cyan-500 uppercase tracking-widest border-2 border-dashed border-slate-800 rounded-xl hover:border-cyan-500">+ Add Food</button>
                   </div>
                 </div>
               );
@@ -134,22 +120,8 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
       </div>
 
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-6">
-        <button 
-          onClick={() => onSave({ 
-            date: new Date().toISOString().split('T')[0], 
-            steps, 
-            water, 
-            caloriesConsumed: totals.calories, 
-            proteinConsumed: totals.p, 
-            carbsConsumed: totals.c, 
-            fatsConsumed: totals.f, 
-            workoutCompleted: false, 
-            foods: selectedFoods,
-            rituals: { ...rituals }
-          })} 
-          className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic border-4 border-slate-900 active:scale-95"
-        >
-          Confirm Day Log
+        <button onClick={() => onSave({ date: new Date().toISOString().split('T')[0], steps, water, caloriesConsumed: totals.calories, proteinConsumed: totals.p, carbsConsumed: totals.c, fatsConsumed: totals.f, workoutCompleted: false, foods: selectedFoods, rituals })} className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic border-4 border-slate-900">
+          Sync Day Log
         </button>
       </div>
 
@@ -157,30 +129,17 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
         <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl p-6 overflow-y-auto">
            <div className="max-w-4xl mx-auto py-12">
               <div className="flex justify-between items-center mb-12">
-                 <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Searching {currentLoggingMeal}</h2>
+                 <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Logging {currentLoggingMeal}</h2>
                  <button onClick={() => setCurrentLoggingMeal(null)} className="text-slate-500 text-4xl">&times;</button>
               </div>
               <div className="flex gap-4 mb-8">
-                <input 
-                  autoFocus type="text" placeholder="Search Staples or AI..." value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)} 
-                  onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
-                  className="flex-1 p-6 bg-slate-900 border border-slate-700 rounded-2xl text-white outline-none focus:border-cyan-500 transition-all shadow-inner" 
-                />
-                <button 
-                  onClick={handleAiSearch} disabled={isAiSearching || !searchTerm} 
-                  className="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30"
-                >
-                  {isAiSearching ? 'Identifying...' : 'AI Check'}
-                </button>
+                <input autoFocus type="text" placeholder="Search Staples or AI..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAiSearch()} className="flex-1 p-6 bg-slate-900 border border-slate-700 rounded-2xl text-white outline-none focus:border-cyan-500" />
+                <button onClick={handleAiSearch} disabled={isAiSearching || !searchTerm} className="px-8 py-4 bg-cyan-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest">AI Check</button>
               </div>
               <div className="grid gap-4">
                   {FOOD_DATABASE.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 8).map(food => (
                     <button key={food.id} onClick={() => handleAddFood(food)} className="w-full text-left p-6 bg-slate-900 hover:bg-slate-800 rounded-2xl flex justify-between items-center transition-all border border-slate-800">
-                      <div>
-                        <p className="font-bold text-white">{food.name}</p>
-                        <p className="text-[8px] text-slate-500 font-black uppercase">{food.servingSize}</p>
-                      </div>
+                      <div><p className="font-bold text-white">{food.name}</p><p className="text-[8px] text-slate-500 uppercase">{food.servingSize}</p></div>
                       <p className="text-xl font-black text-white">{food.calories} kcal</p>
                     </button>
                   ))}
