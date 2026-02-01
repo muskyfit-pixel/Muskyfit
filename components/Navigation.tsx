@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UserRole } from '../types';
 
@@ -33,54 +34,24 @@ const Navigation: React.FC<NavigationProps> = ({ role, setRole, activeTab, setAc
             </div>
           </div>
           
-          <div className="hidden md:flex space-x-6">
+          <div className="hidden lg:flex space-x-4">
             {role === 'COACH' ? (
-              <>
-                <button 
-                  onClick={() => setActiveTab('coach-dashboard')}
-                  className={`${activeTab === 'coach-dashboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[10px] font-black uppercase tracking-widest transition`}
-                >
-                  Dashboard
-                </button>
-              </>
+              <button 
+                onClick={() => setActiveTab('coach-dashboard')}
+                className={`${activeTab === 'coach-dashboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}
+              >
+                Command Center
+              </button>
             ) : (
               <>
-                <button 
-                  onClick={() => setActiveTab('client-dashboard')}
-                  className={`${activeTab === 'client-dashboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[10px] font-black uppercase tracking-widest transition`}
-                >
-                  Home
-                </button>
-                <button 
-                  onClick={() => setActiveTab('log')}
-                  className={`${activeTab === 'log' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[10px] font-black uppercase tracking-widest transition`}
-                >
-                  Log
-                </button>
-                <button 
-                  onClick={() => setActiveTab('check-in')}
-                  className={`${activeTab === 'check-in' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[10px] font-black uppercase tracking-widest transition`}
-                >
-                  Check-In
-                </button>
-                <button 
-                  onClick={() => setActiveTab('plans')}
-                  className={`${activeTab === 'plans' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[10px] font-black uppercase tracking-widest transition`}
-                >
-                  Protocol
-                </button>
-                <button 
-                  onClick={() => setActiveTab('concierge')}
-                  className={`${activeTab === 'concierge' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[10px] font-black uppercase tracking-widest transition`}
-                >
-                  Concierge
-                </button>
-                <button 
-                  onClick={() => setActiveTab('vault')}
-                  className={`${activeTab === 'vault' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[10px] font-black uppercase tracking-widest transition`}
-                >
-                  Vault
-                </button>
+                <button onClick={() => setActiveTab('client-dashboard')} className={`${activeTab === 'client-dashboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Cockpit</button>
+                <button onClick={() => setActiveTab('log')} className={`${activeTab === 'log' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Log</button>
+                <button onClick={() => setActiveTab('workout')} className={`${activeTab === 'workout' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Train</button>
+                <button onClick={() => setActiveTab('check-in')} className={`${activeTab === 'check-in' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Check-In</button>
+                <button onClick={() => setActiveTab('strength')} className={`${activeTab === 'strength' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Matrix</button>
+                <button onClick={() => setActiveTab('photos')} className={`${activeTab === 'photos' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Progress</button>
+                <button onClick={() => setActiveTab('plans')} className={`${activeTab === 'plans' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Protocol</button>
+                <button onClick={() => setActiveTab('concierge')} className={`${activeTab === 'concierge' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Support</button>
               </>
             )}
           </div>
@@ -91,8 +62,9 @@ const Navigation: React.FC<NavigationProps> = ({ role, setRole, activeTab, setAc
               onChange={(e) => {
                 const newRole = e.target.value as UserRole;
                 setRole(newRole);
+                setActiveTab(newRole === 'COACH' ? 'coach-dashboard' : 'client-dashboard');
               }}
-              className="bg-slate-900 text-[10px] border border-slate-700 rounded-md px-3 py-1.5 text-slate-300 font-black uppercase tracking-widest focus:ring-1 focus:ring-cyan-500 outline-none"
+              className="bg-slate-900 text-[9px] border border-slate-700 rounded-md px-3 py-1.5 text-slate-300 font-black uppercase tracking-widest focus:ring-1 focus:ring-cyan-500 outline-none"
             >
               <option value="COACH">COACH VIEW</option>
               <option value="CLIENT">CLIENT VIEW</option>
