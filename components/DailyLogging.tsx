@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { searchUniversalFood } from '../services/geminiService';
-import { MacroSplit, DailyLog, MealCategory, LoggedFood, FoodItem } from '../types';
+import { MacroSplit, DailyLog, MealCategory, LoggedFood } from '../types';
 
 interface DailyLoggingProps {
   onSave: (log: DailyLog) => void;
