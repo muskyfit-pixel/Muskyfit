@@ -14,6 +14,7 @@ import TransformationHub from './components/TransformationHub';
 import MuskyFitSupport from './components/MuskyFitSupport';
 import WeeklyReviewView from './components/WeeklyReviewView';
 import StrengthMatrix from './components/StrengthMatrix';
+import ResourceRadar from './components/ResourceRadar';
 import { generatePersonalizedPlan } from './services/geminiService';
 import { MOCK_CLIENTS } from './constants';
 import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn, WeeklyReview } from './types';
@@ -50,7 +51,12 @@ const App = () => {
     const newId = 'client_' + Date.now();
     const newClient: Client = {
       id: newId,
-      profile: { id: 'u_' + newId, name: data.name, role: 'CLIENT', avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${data.name}` },
+      profile: { 
+        id: 'u_' + newId, 
+        name: data.name, 
+        role: 'CLIENT', 
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${data.name}` 
+      },
       intake: data,
       planStatus: 'CONSULTATION_SUBMITTED',
       currentWorkoutIndex: 0,
@@ -86,7 +92,7 @@ const App = () => {
       } : c));
     } catch (e) {
       console.error("Failed to generate plan", e);
-      alert("AI Protocol Deployment Failed. Check console.");
+      alert("AI Protocol Deployment Failed. Please verify your API configuration.");
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +105,11 @@ const App = () => {
         if (newCheckIns.length > 0) {
           newCheckIns[0] = { ...newCheckIns[0], review };
         }
-        return { ...c, checkIns: newCheckIns, performanceStatus: review.status === 'RED' ? 'OFF_TRACK' : 'ON_TRACK' };
+        return { 
+          ...c, 
+          checkIns: newCheckIns, 
+          performanceStatus: review.status === 'RED' ? 'OFF_TRACK' : 'ON_TRACK' 
+        };
       }
       return c;
     }));
@@ -117,26 +127,37 @@ const App = () => {
 
   const handleWorkoutFinish = (exerciseLogs: ExerciseLog[]) => {
     if (!currentClient || !currentClient.plan) return;
+    
     const workoutCount = currentClient.plan.workoutSplit.length;
     const nextIndex = (currentClient.currentWorkoutIndex + 1) % workoutCount;
     
     const updatedPBs = [...(currentClient.personalBests || [])];
+    const updatedProgress = { ...currentClient.exerciseProgress };
     const today = new Date().toISOString().split('T')[0];
     
     exerciseLogs.forEach(log => {
-      const exerciseName = currentClient.plan!.workoutSplit[currentClient.currentWorkoutIndex].exercises.find(e => e.id === log.exerciseId)?.name;
+      const currentWorkoutDay = currentClient.plan!.workoutSplit[currentClient.currentWorkoutIndex];
+      const exerciseName = currentWorkoutDay.exercises.find(e => e.id === log.exerciseId)?.name;
+      
+      const maxWeightThisSession = Math.max(...log.sets.filter(s => s.completed).map(s => s.weight), 0);
+      
+      if (maxWeightThisSession > 0) {
+        updatedProgress[log.exerciseId] = maxWeightThisSession;
+      }
+
       if (exerciseName) {
-        const pbIdx = updatedPBs.findIndex(p => p.exercise.toLowerCase().includes(exerciseName.toLowerCase()) || exerciseName.toLowerCase().includes(p.exercise.toLowerCase()));
-        if (pbIdx !== -1) {
-          const maxWeightThisSession = Math.max(...log.sets.map(s => s.weight));
-          if (maxWeightThisSession > updatedPBs[pbIdx].weight) {
-            updatedPBs[pbIdx] = {
-              ...updatedPBs[pbIdx],
-              weight: maxWeightThisSession,
-              date: today,
-              history: [...updatedPBs[pbIdx].history, { weight: maxWeightThisSession, date: today }]
-            };
-          }
+        const pbIdx = updatedPBs.findIndex(p => 
+          p.exercise.toLowerCase().includes(exerciseName.toLowerCase()) || 
+          exerciseName.toLowerCase().includes(p.exercise.toLowerCase())
+        );
+        
+        if (pbIdx !== -1 && maxWeightThisSession > updatedPBs[pbIdx].weight) {
+          updatedPBs[pbIdx] = {
+            ...updatedPBs[pbIdx],
+            weight: maxWeightThisSession,
+            date: today,
+            history: [...updatedPBs[pbIdx].history, { weight: maxWeightThisSession, date: today }]
+          };
         }
       }
     });
@@ -151,7 +172,8 @@ const App = () => {
       ...c, 
       currentWorkoutIndex: nextIndex,
       logs: [newLog, ...c.logs],
-      personalBests: updatedPBs
+      personalBests: updatedPBs,
+      exerciseProgress: updatedProgress
     } : c));
     setActiveTab('client-dashboard');
   };
@@ -167,14 +189,18 @@ const App = () => {
       />;
     }
     
-    if (!currentClient || currentClient.planStatus === 'NONE') return <IntakeForm onSubmit={handleIntakeSubmit} isLoading={isLoading} />;
+    if (!currentClient || currentClient.planStatus === 'NONE') {
+      return <IntakeForm onSubmit={handleIntakeSubmit} isLoading={isLoading} />;
+    }
 
     if (currentClient.planStatus === 'CONSULTATION_SUBMITTED') {
       return (
         <div className="max-w-3xl mx-auto text-center py-24 px-4">
-          <div className="mb-10 inline-flex items-center justify-center w-28 h-28 rounded-full bg-slate-900 border-4 border-cyan-500 cyan-glow animate-pulse"><span className="text-5xl">🧬</span></div>
+          <div className="mb-10 inline-flex items-center justify-center w-28 h-28 rounded-full bg-slate-900 border-4 border-cyan-500 cyan-glow animate-pulse">
+            <span className="text-5xl">🧬</span>
+          </div>
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6 uppercase tracking-tighter italic">Building Protocol</h2>
-          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Coach Arjun is analyzing your biometrics to build your bespoke 12-week protocol. Your elite roadmap is being synthesized.</p>
+          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Coach Arjun is analyzing your biometrics to build your bespoke protocol. Your elite roadmap is being synthesized.</p>
         </div>
       );
     }
@@ -194,6 +220,8 @@ const App = () => {
         return <WeeklyReviewView reviews={currentClient.checkIns.filter(c => c.review).map(c => c.review!)} />;
       case 'concierge': 
         return <MuskyFitSupport client={currentClient} />;
+      case 'radar':
+        return <ResourceRadar />;
       case 'vault': 
         return <MuskyFitVault />;
       case 'photos': 
@@ -222,7 +250,11 @@ const App = () => {
                </div>
             </div>
 
-            <ReadinessHUD score={88} sleep={currentClient.checkIns[0]?.sleepHours || 7.5} stress={currentClient.checkIns[0]?.stressLevel > 5 ? 'High' : 'Optimal'} />
+            <ReadinessHUD 
+              score={currentClient.performanceStatus === 'ON_TRACK' ? 88 : 62} 
+              sleep={currentClient.checkIns[0]?.sleepHours || 7.5} 
+              stress={currentClient.checkIns[0]?.stressLevel > 5 ? 'High' : 'Optimal'} 
+            />
 
             <div className="grid lg:grid-cols-2 gap-8">
               <ClientProgressSummary logs={currentClient.logs} />
@@ -251,13 +283,13 @@ const App = () => {
                  <span className="text-2xl mb-3 block">📈</span>
                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">View Performance Review</p>
               </div>
-              <div onClick={() => setActiveTab('strength')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
-                 <span className="text-2xl mb-3 block">⚔️</span>
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">Strength Matrix Stats</p>
+              <div onClick={() => setActiveTab('radar')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
+                 <span className="text-2xl mb-3 block">📡</span>
+                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">Scan Local Radar</p>
               </div>
-              <div onClick={() => setActiveTab('vault')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
-                 <span className="text-2xl mb-3 block">🔐</span>
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">Access MuskyFit Vault</p>
+              <div onClick={() => setActiveTab('concierge')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
+                 <span className="text-2xl mb-3 block">🤖</span>
+                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">AI Executive Support</p>
               </div>
             </div>
           </div>
@@ -267,7 +299,12 @@ const App = () => {
 
   return (
     <div className="min-h-screen">
-      <Navigation role={role} setRole={setRole} activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navigation 
+        role={role} 
+        setRole={setRole} 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+      />
       <main className="max-w-7xl mx-auto py-10">
         {renderContent()}
       </main>
