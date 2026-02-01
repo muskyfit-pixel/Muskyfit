@@ -36,7 +36,6 @@ const App = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('muskyfit_clients', JSON.stringify(clients));
@@ -77,7 +76,6 @@ const App = () => {
 
   const handleCoachFinalise = async (clientId: string, overrides: Partial<IntakeData>) => {
     setIsLoading(true);
-    setError(null);
     try {
       const targetClient = clients.find(c => c.id === clientId);
       if (targetClient && targetClient.intake) {
@@ -86,7 +84,7 @@ const App = () => {
         setClients(prev => prev.map(c => c.id === clientId ? { ...c, intake: updatedIntake, plan, planStatus: 'PLAN_READY', currentWorkoutIndex: 0 } : c));
       }
     } catch (err) {
-      setError("Failed to build bespoke plan. Check AI connection.");
+      console.error("Plan generation failed", err);
     } finally {
       setIsLoading(false);
     }
