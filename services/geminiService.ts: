@@ -10,24 +10,24 @@ export async function generatePerformanceReport(clientName: string, logs: DailyL
     Recent Logs: ${JSON.stringify(logs.slice(0, 7))}
     Subjective Check-in: ${JSON.stringify(checkIn)}
     
-    TASK: Write an elite, high-performance coaching report in British English.
-    - Focus: Compliance for Asian male professional lifestyle.
-    - Style: Direct, elite, MuskyFit brand voice.
-    - Mention: Specific wins or flags based on steps and stress.
+    TASK: Write an elite, high-performance coaching report in British English for the MuskyFit brand.
+    - Context: High-level professional Asian male.
+    - Priorities: V-Taper progress, metabolic health, and corporate-lifestyle stress management.
+    - Style: Authoritative, concise, and focused on "The Elite Protocol."
   `;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
     });
-    return response.text || "Report unavailable. Keep pushing.";
+    return response.text || "Report generation standby. Keep logging.";
   } catch (e) {
-    return "Report generation error.";
+    return "Error generating elite intelligence report. Please check data logs.";
   }
 }
 
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
-  const prompt = `Find 3 high-protein macro-equivalent alternatives for "${meal.name}" (Cals:${meal.macros.calories}, P:${meal.macros.p}). Focus on Asian staples where possible. Return list only.`;
+  const prompt = `Find 3 high-protein macro-equivalent alternatives for "${meal.name}" (Cals:${meal.macros.calories}, P:${meal.macros.p}). Focus on Asian staples (Lentils, Paneer, Lean Halal meats). Return list only.`;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -35,7 +35,7 @@ export async function getMealAlternatives(meal: Meal): Promise<string[]> {
     });
     return response.text.split('\n').filter(s => s.trim().length > 0).slice(0, 3);
   } catch (e) {
-    return ["Grilled Chicken & Rice", "Lentil Pasta", "Lean Beef Stir-fry"];
+    return ["Tandoori Salmon & Asparagus", "Low-Fat Paneer Bhurji", "Lean Beef & Broccoli"];
   }
 }
 
@@ -51,20 +51,17 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
     Niche: Elite Body Transformation for Asian Men (30-50 Professionals/Executives).
     
     CRITICAL FOCUS AREAS:
-    1. V-TAPER AESTHETICS: Heavy emphasis on lateral delts, lat width, and waist tightness.
-    2. POSTURE CORRECTION: Combat 'Desk Posture' (Rounded shoulders, neck strain). Mandatory inclusion of Thoracic mobility, Face Pulls, and Posterior Chain work.
-    3. CULTURAL NUTRITION: Optimize Asian staples for fat loss/muscle gain. Use Basmati rice, high-protein Dal variations, Paneer (low fat where possible), and Lean Meats.
+    1. V-TAPER AESTHETICS: Focus on lateral delts, lat width, and waist management.
+    2. POSTURE: Correct 'Desk Neck' and rounded shoulders via Face Pulls and Thoracic work.
+    3. ASIAN NUTRITION: Optimize Basmati, Dal, and Chapatis for high protein/fat loss.
     
-    VOICE: Assertive, British, Professional, Elite.
+    VOICE: Direct, British, Professional, Elite.
   `;
 
   const userPrompt = `
-    Create a bespoke protocol for ${data.name}:
-    Goal: ${data.goal} | Weight: ${data.weight}kg | Height: ${data.height}cm
-    Preferences: ${data.culturalPreference} (${data.dietPreference})
-    Training: ${data.trainingDaysPerWeek} days/week.
-    
-    Output JSON including V-Taper focused split and Asian-inspired high-protein meal plan.
+    Build a 4-week block for ${data.name}.
+    Goal: ${data.goal} | Preferences: ${data.culturalPreference} (${data.dietPreference}).
+    Training Frequency: ${data.trainingDaysPerWeek} days/week.
   `;
 
   try {
@@ -139,12 +136,12 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
 
     return JSON.parse(response.text || '{}');
   } catch (e) {
-    throw new Error("Plan generation failed. Check API configuration.");
+    throw new Error("Protocol engine failure. Ensure API access.");
   }
 }
 
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
-  const prompt = `Macro data for 100g of: "${query}". Return JSON. Focus on accuracy for fitness logging.`;
+  const prompt = `Calculate calories, protein, carbs, and fats for 100g of: "${query}". Identify cultural staples. Return JSON.`;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -167,7 +164,7 @@ export async function searchUniversalFood(query: string): Promise<FoodItem | nul
       }
     });
     const result = JSON.parse(response.text || '{}');
-    return { ...result, id: 'ai_' + Date.now(), type: 'WESTERN' };
+    return { ...result, id: 'ai_' + Date.now(), type: 'INDIAN' };
   } catch (e) {
     return null;
   }
