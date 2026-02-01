@@ -9,13 +9,18 @@ interface WorkoutTrackerProps {
 }
 
 const WorkoutTracker: React.FC<WorkoutTrackerProps> = ({ currentWorkout, previousProgress, onFinish }) => {
+  // Bulletproof rep parser for ranges like "8-12" or "To Failure"
+  const parseReps = (val: string): number => {
+    const match = val.match(/\d+/);
+    return match ? parseInt(match[0]) : 10;
+  };
+
   const [exerciseLogs, setExerciseLogs] = useState<ExerciseLog[]>(
     currentWorkout.exercises.map(ex => ({
       exerciseId: ex.id,
       sets: Array.from({ length: ex.sets }).map(() => ({
         weight: previousProgress[ex.id] || 0,
-        // Handle potential string rep values like "8-12" by taking the first number
-        reps: parseInt(ex.reps.split('-')[0]) || 0,
+        reps: parseReps(ex.reps),
         rpe: ex.targetRpe || 8, 
         completed: false
       }))
@@ -58,7 +63,7 @@ const WorkoutTracker: React.FC<WorkoutTrackerProps> = ({ currentWorkout, previou
   };
 
   const progressPercent = (exerciseLogs.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0) / 
-                           exerciseLogs.reduce((acc, ex) => acc + ex.sets.length, 0)) * 100;
+                           (exerciseLogs.reduce((acc, ex) => acc + ex.sets.length, 0) || 1)) * 100;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-40 px-4 md:px-0 animate-in fade-in duration-700">
