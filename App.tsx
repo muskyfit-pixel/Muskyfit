@@ -63,6 +63,26 @@ const App = () => {
     setActiveTab('client-dashboard');
   };
 
+  const handleFinaliseProtocol = async (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client || !client.intake) return;
+    
+    setIsLoading(true);
+    try {
+      const plan = await generatePersonalizedPlan(client.intake);
+      setClients(prev => prev.map(c => c.id === clientId ? {
+        ...c,
+        plan,
+        planStatus: 'PLAN_READY'
+      } : c));
+    } catch (e) {
+      console.error("Failed to generate plan", e);
+      alert("AI Protocol Deployment Failed. Check console.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLogSave = (log: DailyLog) => {
     setClients(prev => prev.map(c => c.id === currentClientId ? { ...c, logs: [log, ...c.logs] } : c));
     setActiveTab('client-dashboard');
@@ -92,7 +112,7 @@ const App = () => {
       return <CoachDashboard 
         clients={clients} 
         pendingClient={clients.find(c => c.planStatus === 'CONSULTATION_SUBMITTED') || null} 
-        onFinalise={(id, overrides) => {}} 
+        onFinalise={handleFinaliseProtocol} 
         isLoading={isLoading} 
       />;
     }
@@ -102,9 +122,9 @@ const App = () => {
     if (currentClient.planStatus === 'CONSULTATION_SUBMITTED') {
       return (
         <div className="max-w-3xl mx-auto text-center py-24 px-4">
-          <div className="mb-10 inline-flex items-center justify-center w-28 h-28 rounded-full bg-slate-900 border-4 border-cyan-500 cyan-glow"><span className="text-5xl">🧬</span></div>
+          <div className="mb-10 inline-flex items-center justify-center w-28 h-28 rounded-full bg-slate-900 border-4 border-cyan-500 cyan-glow animate-pulse"><span className="text-5xl">🧬</span></div>
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6 uppercase tracking-tighter italic">Building Protocol</h2>
-          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Your coach is analyzing your biometrics to build your 12-week V-Taper protocol. Please stand by.</p>
+          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Your coach is analyzing your biometrics to build your bespoke 12-week V-Taper protocol. Please stand by.</p>
         </div>
       );
     }
