@@ -1,37 +1,45 @@
 
 import React, { useState } from 'react';
-import { Client, WeeklyCheckIn } from '../types';
-import { generatePerformanceReport } from '../services/geminiService';
+import { Client, WeeklyCheckIn, WeeklyReview } from '../types';
+import { analyzeWeeklyPerformance } from '../services/geminiService';
 
 interface CoachDashboardProps {
   clients: Client[];
   pendingClient: Client | null;
   onFinalise: (id: string, overrides: any) => void;
+  onSendReview: (clientId: string, review: WeeklyReview) => void;
   isLoading: boolean;
 }
 
-const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient, onFinalise, isLoading }) => {
+const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient, onFinalise, onSendReview, isLoading }) => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'OVERVIEW' | 'DEEP_DIVE'>('OVERVIEW');
-  const [generatedReport, setGeneratedReport] = useState<string | null>(null);
-  const [isReporting, setIsReporting] = useState(false);
+  const [generatedReview, setGeneratedReview] = useState<WeeklyReview | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
-  const handleGenerateReport = async () => {
-    if (!selectedClient) return;
-    setIsReporting(true);
-    const mockCheckIn: WeeklyCheckIn = selectedClient.checkIns?.[0] || {
-      date: new Date().toISOString(),
-      energyLevel: 8,
-      stressLevel: 4,
-      sleepHours: 7,
-      digestionStatus: 'Normal',
-      clientComments: 'Active and consistent.'
-    };
-    const report = await generatePerformanceReport(selectedClient.profile.name, selectedClient.logs, mockCheckIn);
-    setGeneratedReport(report);
-    setIsReporting(false);
+  const handleAnalyzePerformance = async () => {
+    if (!selectedClient || selectedClient.checkIns.length === 0) return;
+    setIsAnalyzing(true);
+    try {
+      const dob = selectedClient.intake?.dob || "1990-01-01";
+      const age = Math.abs(new Date(Date.now() - new Date(dob).getTime()).getUTCFullYear() - 1970);
+      const gender = selectedClient.intake?.gender || "MALE";
+      
+      const review = await analyzeWeeklyPerformance(
+        selectedClient.profile.name,
+        gender,
+        age,
+        selectedClient.logs,
+        selectedClient.checkIns[0]
+      );
+      setGeneratedReview(review);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -42,7 +50,7 @@ const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient,
           <p className="text-cyan-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2">Elite Analytics & Deployment</p>
         </div>
         {viewMode === 'DEEP_DIVE' && (
-          <button onClick={() => setViewMode('OVERVIEW')} className="bg-slate-900 px-6 py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-widest border border-slate-800 hover:bg-slate-800 transition">
+          <button onClick={() => { setViewMode('OVERVIEW'); setGeneratedReview(null); }} className="bg-slate-900 px-6 py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-widest border border-slate-800 hover:bg-slate-800 transition">
             Close Deep Dive
           </button>
         )}
@@ -72,11 +80,11 @@ const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient,
                 <div className="grid grid-cols-2 gap-3">
                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
                       <p className="text-[7px] font-black text-slate-600 uppercase mb-1">Status</p>
-                      <p className="text-xs font-black text-green-400">ON TRACK</p>
+                      <p className={`text-xs font-black ${client.performanceStatus === 'ON_TRACK' ? 'text-green-400' : 'text-red-400'}`}>{client.performanceStatus}</p>
                    </div>
                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
-                      <p className="text-[7px] font-black text-slate-600 uppercase mb-1">Rituals</p>
-                      <p className="text-xs font-black text-cyan-400">92%</p>
+                      <p className="text-[7px] font-black text-slate-600 uppercase mb-1">Last Log</p>
+                      <p className="text-xs font-black text-cyan-400">{client.logs[0]?.date || 'None'}</p>
                    </div>
                 </div>
              </div>
@@ -103,37 +111,82 @@ const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient,
                </div>
 
                <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800">
-                  <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-[0.3em] mb-6 italic">Ritual Adherence</h4>
-                  <div className="space-y-4">
-                     {selectedClient.logs[0]?.rituals ? Object.entries(selectedClient.logs[0].rituals).map(([habit, val]) => (
-                        <div key={habit} className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                           <span className="capitalize">{habit.replace(/([A-Z])/g, ' $1')}</span>
-                           <span className={val ? 'text-green-500' : 'text-red-500'}>{val ? 'DONE' : 'MISSED'}</span>
+                  <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-[0.3em] mb-6 italic">Current Check-In</h4>
+                  {selectedClient.checkIns[0] ? (
+                    <div className="space-y-4">
+                      <p className="text-xs text-slate-300 italic">"{selectedClient.checkIns[0].clientComments}"</p>
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                        <div>
+                          <p className="text-[8px] font-black text-slate-500 uppercase">Energy</p>
+                          <p className="text-sm font-black text-white">{selectedClient.checkIns[0].energyLevel}/10</p>
                         </div>
-                     )) : <p className="text-xs italic text-slate-600">No ritual data logged for today.</p>}
-                  </div>
+                        <div>
+                          <p className="text-[8px] font-black text-slate-500 uppercase">Stress</p>
+                          <p className="text-sm font-black text-red-400">{selectedClient.checkIns[0].stressLevel}/10</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : <p className="text-xs italic text-slate-600">No check-in submitted this week.</p>}
                </div>
             </div>
 
             <div className="lg:col-span-8 space-y-8">
-               <div className="bg-slate-900 p-8 rounded-[3rem] border border-slate-800 shadow-2xl">
+               <div className="bg-slate-900 p-8 rounded-[3rem] border border-slate-800 shadow-2xl relative">
                   <div className="flex justify-between items-center mb-8">
-                     <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">AI Performance Synthesis</h4>
-                     <button onClick={handleGenerateReport} disabled={isReporting} className="px-6 py-2 bg-white text-black text-[9px] font-black uppercase rounded-lg shadow-lg hover:bg-cyan-500 transition-all active:scale-95">
-                        {isReporting ? 'Analyzing...' : 'Generate AI Intel'}
+                     <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Weekly Feedback Deployment</h4>
+                     <button 
+                        onClick={handleAnalyzePerformance} 
+                        disabled={isAnalyzing || selectedClient.checkIns.length === 0} 
+                        className="px-6 py-2 bg-white text-black text-[9px] font-black uppercase rounded-lg shadow-lg hover:bg-cyan-500 transition-all active:scale-95 disabled:opacity-20"
+                     >
+                        {isAnalyzing ? 'Analyzing Intelligence...' : 'Generate Review'}
                      </button>
                   </div>
-                  <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 min-h-[150px] text-sm text-slate-300 italic leading-relaxed whitespace-pre-wrap">
-                     {generatedReport || "Click 'Generate' to run deep analysis on compliance, stress, and biometric response."}
-                  </div>
+
+                  {generatedReview ? (
+                    <div className="space-y-6 animate-in zoom-in-95 duration-300">
+                      <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800">
+                        <div className="flex justify-between items-start mb-6">
+                          <div>
+                            <p className="text-[8px] font-black text-cyan-500 uppercase tracking-widest">Adherence Score</p>
+                            <p className="text-4xl font-black text-white italic">{generatedReview.adherenceScore}%</p>
+                          </div>
+                          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${generatedReview.status === 'GREEN' ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
+                            Status: {generatedReview.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-300 italic leading-relaxed mb-8">"{generatedReview.coachMessage}"</p>
+                        <div className="grid md:grid-cols-3 gap-4">
+                          {generatedReview.directives.map((d, i) => (
+                            <div key={i} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-[10px] text-white font-bold italic">
+                              <span className="text-cyan-500 mr-2">#{i+1}</span> {d}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          onSendReview(selectedClient.id, generatedReview);
+                          setGeneratedReview(null);
+                        }} 
+                        className="w-full py-4 bg-cyan-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-cyan-500 transition-all"
+                      >
+                        Publish Performance Review
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-950 p-12 rounded-3xl border border-slate-800 text-center italic text-slate-600 text-sm">
+                      {selectedClient.checkIns.length > 0 ? "Intelligence ready for synthesis. Click 'Generate Review' to draft the weekly feedback." : "Wait for client to submit check-in before generating review."}
+                    </div>
+                  )}
                </div>
 
                <div className="bg-slate-900 rounded-[3rem] border border-slate-800 overflow-hidden shadow-2xl">
                   <div className="px-8 py-6 bg-slate-950/50 border-b border-slate-800 flex justify-between items-center">
-                     <h4 className="text-[10px] font-black text-white uppercase tracking-widest italic">Biometric Audit</h4>
+                     <h4 className="text-[10px] font-black text-white uppercase tracking-widest italic">Biometric Audit (Last 7 Days)</h4>
                   </div>
                   <div className="p-4 space-y-3">
-                     {selectedClient.logs.slice(0, 5).map((log, i) => (
+                     {selectedClient.logs.slice(0, 7).map((log, i) => (
                         <div key={i} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center hover:border-cyan-500/30 transition-all">
                            <div>
                               <p className="text-xs font-black text-white">{log.date}</p>
