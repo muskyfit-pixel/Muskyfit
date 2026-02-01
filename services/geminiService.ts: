@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { IntakeData, Meal, DailyLog, WeeklyCheckIn, FoodItem } from "../types";
 
@@ -25,11 +24,11 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
     Exclusions: ${data.religiousExclusions}.
     Activity Level: ${data.activityLevel} with a ${data.jobType} career.
     
-    Specific coaching directives:
-    1. If age > 30, emphasize mobility and "Pre-hab" exercises.
-    2. If goal is longevity, focus on lean muscle maintenance and cardiovascular health.
-    3. Include culturally relevant high-protein food options for ${data.culturalPreference} context.
-    4. Ensure training volume is sustainable for a ${data.jobType} lifestyle.`,
+    Specific coaching directives for MUSKYFIT Team:
+    1. GENDER-SPECIFIC: If FEMALE, optimize for metabolic health and muscle toning without excessive bulk, emphasizing glute/leg development and postural health. If MALE, focus on the V-Taper (Shoulder width / Waist taper).
+    2. AGE-SPECIFIC: If client is 30+, mandate a 10-minute mobility/warm-up for every session and include "Longevity" hacks in the coach advice. If younger, prioritize progressive overload and hypertrophy.
+    3. LIFESTYLE: Account for the ${data.jobType} career. If "Desk", include specific hip flexor and thoracic mobility drills.
+    4. NUTRITION: Include culturally relevant high-protein food options for ${data.culturalPreference} context. Ensure macro splits match the ${data.goal}.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -122,7 +121,7 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Nutritional data for 100g of ${query}. Use global or regional context depending on food name.`,
+    contents: `Nutritional data for 100g of ${query}. Provide calories, protein, carbs, and fats.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -154,7 +153,7 @@ export async function searchUniversalFood(query: string): Promise<FoodItem | nul
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `List 3 alternative high-protein meals for: ${meal.name}. Target Macros: ${meal.macros.calories}kcal, P:${meal.macros.p}g, C:${meal.macros.c}g, F:${meal.macros.f}g.`,
+    contents: `List 3 alternative high-protein meals for: ${meal.name}. Target Macros: ${meal.macros.calories}kcal.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -178,11 +177,10 @@ export async function generatePerformanceReport(name: string, logs: DailyLog[], 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Synthesize performance data for ${name}.
-    Steps: ${logs.map(l => l.steps).slice(0, 7).join(',')}.
-    Compliance: ${logs.filter(l => l.workoutCompleted).length} training sessions this week.
-    Stress/Sleep: ${checkIn.stressLevel}/10 stress, ${checkIn.sleepHours}h sleep.`,
+    Compliance: ${logs.filter(l => l.workoutCompleted).length} training sessions.
+    Sleep: ${checkIn.sleepHours}h. Stress: ${checkIn.stressLevel}/10.`,
     config: {
-      systemInstruction: "You are the head coach at MUSKYFIT. Provide an elite performance summary. If the client is 30+, highlight recovery and consistent longevity wins."
+      systemInstruction: "You are the head coach at MUSKYFIT. Provide an elite performance summary. High level, professional, and encouraging."
     }
   });
   return response.text || "Report pending...";
