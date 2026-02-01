@@ -2,33 +2,47 @@
 import React, { useState } from 'react';
 import { ProgressPhoto } from '../types';
 import { generateGoalVisualization } from '../services/geminiService';
-import { Sparkles, Camera, Loader2, Info } from 'lucide-react';
+import { Sparkles, Camera, Loader2, Info, Key } from 'lucide-react';
 
 interface TransformationHubProps {
   photos: ProgressPhoto[];
   onUpload: (photo: ProgressPhoto) => void;
   biometrics?: string;
+  gender?: string;
+  dob?: string;
 }
 
-const TransformationHub: React.FC<TransformationHubProps> = ({ photos, onUpload, biometrics }) => {
+const TransformationHub: React.FC<TransformationHubProps> = ({ photos, onUpload, biometrics, gender = "male", dob }) => {
   const [activeType, setActiveType] = useState<'FRONT' | 'SIDE' | 'BACK'>('FRONT');
   const [goalImage, setGoalImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   
   const typePhotos = photos.filter(p => p.type === activeType).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // [FIX] Added API key selection check for image generation
   const handleGenerateVision = async () => {
-    if (!(window as any).aistudio?.hasSelectedApiKey()) {
-      await (window as any).aistudio.openSelectKey();
+    const hasKey = await (window as any).aistudio?.hasSelectedApiKey();
+    if (!hasKey) {
+      await (window as any).aistudio?.openSelectKey();
     }
 
     setIsGenerating(true);
+    const age = dob ? new Date().getFullYear() - new Date(dob).getFullYear() : 30;
+    
     try {
-      const vision = await generateGoalVisualization("Extreme V-Taper, Lean Aesthetic", biometrics || "Asian Male, Professional");
-      setGoalImage(vision);
-    } catch (e) {
+      const goalText = gender.toLowerCase() === 'female' 
+        ? "Athletic Hourglass Physique, Lean Aesthetic Definition" 
+        : "Elite Athletic Build, Lean Functional Muscle";
+        
+      const vision = await generateGoalVisualization(goalText, biometrics || "Asian Professional", gender.toLowerCase(), age);
+      if (vision) {
+        setGoalImage(vision);
+      }
+    } catch (e: any) {
       console.error(e);
+      if (e.message?.includes("Requested entity was not found")) {
+        alert("Verification required. Please select your paid API key.");
+        await (window as any).aistudio?.openSelectKey();
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -49,7 +63,7 @@ const TransformationHub: React.FC<TransformationHubProps> = ({ photos, onUpload,
   };
 
   return (
-    <div className="space-y-10 pb-20 animate-in fade-in duration-700">
+    <div className="space-y-10 pb-24 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
            <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter metallic-text">Transformation Vault</h2>
@@ -69,7 +83,6 @@ const TransformationHub: React.FC<TransformationHubProps> = ({ photos, onUpload,
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
-        {/* BASELINE */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center italic">Baseline Status</p>
           <div className="aspect-[3/4] bg-slate-950 rounded-[2.5rem] border border-slate-800 flex items-center justify-center overflow-hidden relative">
@@ -82,7 +95,6 @@ const TransformationHub: React.FC<TransformationHubProps> = ({ photos, onUpload,
           </div>
         </div>
 
-        {/* CURRENT */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-cyan-500 uppercase tracking-widest text-center italic">Current State</p>
           <div className="aspect-[3/4] bg-slate-950 rounded-[2.5rem] border border-cyan-900/20 flex items-center justify-center relative overflow-hidden group">
@@ -101,7 +113,6 @@ const TransformationHub: React.FC<TransformationHubProps> = ({ photos, onUpload,
           </div>
         </div>
 
-        {/* VISION */}
         <div className="space-y-4">
           <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest text-center italic">AI Goal Vision</p>
           <div className="aspect-[3/4] bg-slate-950 rounded-[2.5rem] border border-amber-900/20 flex items-center justify-center relative overflow-hidden group shadow-[0_0_30px_rgba(245,158,11,0.05)]">
@@ -133,10 +144,16 @@ const TransformationHub: React.FC<TransformationHubProps> = ({ photos, onUpload,
       </div>
 
       <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 flex items-start gap-4">
-        <Info className="text-cyan-500 shrink-0" size={20} />
-        <p className="text-sm text-slate-500 italic leading-relaxed">
-          The **AI Goal Vision** uses your metabolic profile to estimate your maximal natural potential after the first 12-week block. Use this as your North Star during high-intensity training sessions.
-        </p>
+        <Key className="text-amber-500 shrink-0 mt-1" size={20} />
+        <div className="space-y-2">
+           <p className="text-sm text-slate-200 font-bold italic leading-relaxed">
+             AI Goal Visualization requires a paid Gemini Project.
+           </p>
+           <p className="text-[11px] text-slate-500 italic leading-relaxed">
+             This process uses high-fidelity neural imaging. If prompted, please ensure you select an API key linked to a paid billing project. 
+             Learn more about <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-cyan-500 underline">billing documentation</a>.
+           </p>
+        </div>
       </div>
     </div>
   );
