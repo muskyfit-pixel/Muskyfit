@@ -14,6 +14,7 @@ import MuskyFitVault from './components/MuskyFitVault';
 import WeeklyReviewView from './components/WeeklyReviewView';
 import StrengthMatrix from './components/StrengthMatrix';
 import ResourceRadar from './components/ResourceRadar';
+import ClientProgressSummary from './components/ClientProgressSummary';
 import { generatePersonalizedPlan } from './services/geminiService';
 import { MOCK_CLIENTS } from './constants';
 import { Client, IntakeData } from './types';
@@ -24,21 +25,21 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const [clients, setClients] = useState<Client[]>(() => {
-    const saved = localStorage.getItem('muskyfit_clients_v4');
+    const saved = localStorage.getItem('muskyfit_clients_v5');
     return saved ? JSON.parse(saved) : MOCK_CLIENTS;
   });
   
   const [currentClientId, setCurrentClientId] = useState<string | null>(() => {
-    return localStorage.getItem('muskyfit_active_client_v4') || (clients.length > 0 ? clients[0].id : null);
+    return localStorage.getItem('muskyfit_active_client_v5') || (clients.length > 0 ? clients[0].id : null);
   });
 
   useEffect(() => {
-    localStorage.setItem('muskyfit_clients_v4', JSON.stringify(clients));
+    localStorage.setItem('muskyfit_clients_v5', JSON.stringify(clients));
   }, [clients]);
 
   useEffect(() => {
     if (currentClientId) {
-      localStorage.setItem('muskyfit_active_client_v4', currentClientId);
+      localStorage.setItem('muskyfit_active_client_v5', currentClientId);
     }
   }, [currentClientId]);
 
@@ -111,11 +112,11 @@ const App = () => {
 
     if (currentClient.planStatus === 'CONSULTATION_SUBMITTED') {
       return (
-        <div className="max-w-2xl mx-auto text-center py-24 px-6 bg-slate-900/40 rounded-[3rem] border border-slate-800 backdrop-blur-sm shadow-2xl">
-          <div className="text-6xl mb-8 animate-pulse">🧬</div>
+        <div className="max-w-2xl mx-auto text-center py-24 px-6 bg-slate-900/40 rounded-[3rem] border border-slate-800 backdrop-blur-sm shadow-2xl animate-pulse">
+          <div className="text-6xl mb-8">🧬</div>
           <h2 className="text-4xl font-black text-white mb-4 italic uppercase tracking-tighter">Analysing Phenotype</h2>
-          <p className="text-slate-400 mb-10 max-w-md mx-auto">Hi {currentClient.profile.name}. Your MuskyFit coach is currently engineering your bespoke V-Taper protocol.</p>
-          <button onClick={() => setRole('COACH')} className="bg-cyan-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em]">Coach Command Center</button>
+          <p className="text-slate-400 mb-10 max-w-md mx-auto italic">Your bespoke V-Taper protocol is being engineered. Switch to COACH VIEW to publish it.</p>
+          <button onClick={() => setRole('COACH')} className="bg-cyan-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-cyan-500 transition shadow-xl">Coach Command Center</button>
         </div>
       );
     }
@@ -147,12 +148,13 @@ const App = () => {
               </div>
             </div>
             <ReadinessHUD score={94} sleep={7.8} stress="Optimal" />
+            <ClientProgressSummary logs={currentClient.logs} />
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 flex flex-col justify-between group hover:border-cyan-500 transition-all cursor-pointer shadow-2xl overflow-hidden" onClick={() => setActiveTab('workout')}>
+              <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 flex flex-col justify-between group hover:border-cyan-500 transition-all cursor-pointer shadow-2xl relative overflow-hidden" onClick={() => setActiveTab('workout')}>
                  <div className="absolute top-0 right-0 p-8 opacity-5 text-6xl font-black italic uppercase select-none">Lift</div>
                  <h3 className="text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest italic">Next Session</h3>
                  <p className="text-2xl font-black text-white mb-8 italic uppercase tracking-tight">{currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex]?.title || 'Rest Day'}</p>
-                 <button className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl text-[10px]">Execute</button>
+                 <button className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl text-[10px] shadow-lg">Execute Session</button>
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <button onClick={() => setActiveTab('log')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 text-center hover:border-cyan-500 transition shadow-lg group">
@@ -167,9 +169,9 @@ const App = () => {
                     <span className="text-2xl mb-2 block group-hover:scale-125 transition">💬</span>
                     <p className="text-[9px] font-black text-white uppercase tracking-widest italic">Support</p>
                  </button>
-                 <button onClick={() => setActiveTab('check-in')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 text-center hover:border-cyan-500 transition shadow-lg group">
-                    <span className="text-2xl mb-2 block group-hover:scale-125 transition">📅</span>
-                    <p className="text-[9px] font-black text-white uppercase tracking-widest italic">Audit</p>
+                 <button onClick={() => setActiveTab('transformation')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 text-center hover:border-cyan-500 transition shadow-lg group">
+                    <span className="text-2xl mb-2 block group-hover:scale-125 transition">📸</span>
+                    <p className="text-[9px] font-black text-white uppercase tracking-widest italic">Vault</p>
                  </button>
               </div>
             </div>
