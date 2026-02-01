@@ -13,9 +13,10 @@ import MuskyFitVault from './components/MuskyFitVault';
 import TransformationHub from './components/TransformationHub';
 import MuskyFitSupport from './components/MuskyFitSupport';
 import WeeklyReviewView from './components/WeeklyReviewView';
+import StrengthMatrix from './components/StrengthMatrix';
 import { generatePersonalizedPlan } from './services/geminiService';
 import { MOCK_CLIENTS } from './constants';
-import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn, WeeklyReview } from './types';
+import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn, WeeklyReview, PersonalBest } from './types';
 
 const App = () => {
   const [role, setRole] = useState<'COACH' | 'CLIENT'>('CLIENT');
@@ -54,6 +55,12 @@ const App = () => {
       planStatus: 'CONSULTATION_SUBMITTED',
       currentWorkoutIndex: 0,
       exerciseProgress: {},
+      personalBests: [
+        { exercise: 'Bench Press', weight: 0, date: '', history: [] },
+        { exercise: 'Squat', weight: 0, date: '', history: [] },
+        { exercise: 'Deadlift', weight: 0, date: '', history: [] },
+        { exercise: 'Shoulder Press', weight: 0, date: '', history: [] }
+      ],
       logs: [],
       checkIns: [],
       photos: [],
@@ -113,8 +120,30 @@ const App = () => {
     const workoutCount = currentClient.plan.workoutSplit.length;
     const nextIndex = (currentClient.currentWorkoutIndex + 1) % workoutCount;
     
+    // Check for PBs
+    const updatedPBs = [...(currentClient.personalBests || [])];
+    const today = new Date().toISOString().split('T')[0];
+    
+    exerciseLogs.forEach(log => {
+      const exerciseName = currentClient.plan!.workoutSplit[currentClient.currentWorkoutIndex].exercises.find(e => e.id === log.exerciseId)?.name;
+      if (exerciseName) {
+        const pbIdx = updatedPBs.findIndex(p => p.exercise.toLowerCase().includes(exerciseName.toLowerCase()) || exerciseName.toLowerCase().includes(p.exercise.toLowerCase()));
+        if (pbIdx !== -1) {
+          const maxWeightThisSession = Math.max(...log.sets.map(s => s.weight));
+          if (maxWeightThisSession > updatedPBs[pbIdx].weight) {
+            updatedPBs[pbIdx] = {
+              ...updatedPBs[pbIdx],
+              weight: maxWeightThisSession,
+              date: today,
+              history: [...updatedPBs[pbIdx].history, { weight: maxWeightThisSession, date: today }]
+            };
+          }
+        }
+      }
+    });
+
     const newLog: DailyLog = {
-      date: new Date().toISOString().split('T')[0],
+      date: today,
       steps: 0, water: 0, caloriesConsumed: 0, proteinConsumed: 0, carbsConsumed: 0, fatsConsumed: 0,
       workoutCompleted: true, exerciseLogs, workoutId: currentClient.plan.workoutSplit[currentClient.currentWorkoutIndex].id
     };
@@ -122,7 +151,8 @@ const App = () => {
     setClients(prev => prev.map(c => c.id === currentClientId ? { 
       ...c, 
       currentWorkoutIndex: nextIndex,
-      logs: [newLog, ...c.logs]
+      logs: [newLog, ...c.logs],
+      personalBests: updatedPBs
     } : c));
     setActiveTab('client-dashboard');
   };
@@ -169,6 +199,8 @@ const App = () => {
         return <MuskyFitVault />;
       case 'photos': 
         return <TransformationHub photos={currentClient.photos} onUpload={(p) => setClients(prev => prev.map(c => c.id === currentClientId ? {...c, photos: [...c.photos, p]} : c))} />;
+      case 'strength':
+        return <StrengthMatrix pbs={currentClient.personalBests || []} />;
       case 'plans':
         return <PlanDisplay 
           mealPlan={currentClient.plan!.mealPlan} 
@@ -179,69 +211,4 @@ const App = () => {
         />;
       default: 
         return (
-          <div className="space-y-10 px-4 md:px-0">
-            <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl">
-               <ReadinessHUD score={85} sleep={7.5} stress="Zen" />
-            </div>
-            
-            {currentClient.checkIns.some(c => c.review) && (
-              <button 
-                onClick={() => setActiveTab('performance')}
-                className="w-full p-8 bg-cyan-600/10 border border-cyan-500/30 rounded-[2.5rem] flex items-center justify-between group hover:bg-cyan-600/20 transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-4xl">🏆</span>
-                  <div className="text-left">
-                    <p className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">Performance Update</p>
-                    <h3 className="text-xl font-black text-white italic">Weekly Review Ready</h3>
-                  </div>
-                </div>
-                <span className="text-white text-2xl group-hover:translate-x-2 transition-transform">→</span>
-              </button>
-            )}
-
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-               <button onClick={() => setActiveTab('workout')} className="p-6 bg-white rounded-3xl text-black font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-xl block mb-2">🏋️</span>
-                 Train
-               </button>
-               <button onClick={() => setActiveTab('log')} className="p-6 bg-cyan-600 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-xl block mb-2">🥗</span>
-                 Macros
-               </button>
-               <button onClick={() => setActiveTab('check-in')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-xl block mb-2">📋</span>
-                 Check-In
-               </button>
-               <button onClick={() => setActiveTab('concierge')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-xl block mb-2">🤖</span>
-                 Support
-               </button>
-               <button onClick={() => setActiveTab('vault')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-xl block mb-2">🧠</span>
-                 Vault
-               </button>
-               <button onClick={() => setActiveTab('photos')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-xl block mb-2">📸</span>
-                 Photos
-               </button>
-               <button onClick={() => setActiveTab('plans')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-xl block mb-2">📊</span>
-                 Plan
-               </button>
-            </div>
-            <ClientProgressSummary logs={currentClient.logs} />
-          </div>
-        );
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-[#070b14]">
-      <Navigation role={role} setRole={setRole} activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="max-w-7xl mx-auto pt-12 pb-24">{renderContent()}</main>
-    </div>
-  );
-};
-
-export default App;
+          <div className="space-y-10 px
