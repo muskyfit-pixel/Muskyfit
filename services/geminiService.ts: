@@ -1,12 +1,9 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { IntakeData, Meal, WorkoutDay, MacroSplit, FoodItem, DailyLog, WeeklyCheckIn } from "../types";
 
-// Core AI initialization using the mandatory SDK pattern
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
-/**
- * Generates a weekly performance report for clients
- */
 export async function generatePerformanceReport(clientName: string, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<string> {
   const prompt = `
     Analyze fitness data for client "${clientName}".
@@ -16,6 +13,7 @@ export async function generatePerformanceReport(clientName: string, logs: DailyL
     TASK: Write an elite, high-performance coaching report in British English.
     - Focus: Compliance for Asian male professional lifestyle.
     - Style: Direct, elite, MuskyFit brand voice.
+    - Mention: Specific wins or flags based on steps and stress.
   `;
   try {
     const response = await ai.models.generateContent({
@@ -28,11 +26,8 @@ export async function generatePerformanceReport(clientName: string, logs: DailyL
   }
 }
 
-/**
- * Finds macro-equivalent alternatives for meals
- */
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
-  const prompt = `Find 3 macro-equivalent alternatives for "${meal.name}" (Cals:${meal.macros.calories}, P:${meal.macros.p}). Return list only.`;
+  const prompt = `Find 3 high-protein macro-equivalent alternatives for "${meal.name}" (Cals:${meal.macros.calories}, P:${meal.macros.p}). Focus on Asian staples where possible. Return list only.`;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -44,9 +39,6 @@ export async function getMealAlternatives(meal: Meal): Promise<string[]> {
   }
 }
 
-/**
- * The "Master Coach" engine for plan generation
- */
 export async function generatePersonalizedPlan(data: IntakeData): Promise<{ 
   trainingDayMacros: MacroSplit, 
   restDayMacros: MacroSplit, 
@@ -151,11 +143,8 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
   }
 }
 
-/**
- * AI Food Identification
- */
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
-  const prompt = `Macro data for 100g of: "${query}". Return JSON.`;
+  const prompt = `Macro data for 100g of: "${query}". Return JSON. Focus on accuracy for fitness logging.`;
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -170,9 +159,10 @@ export async function searchUniversalFood(query: string): Promise<FoodItem | nul
             protein: { type: Type.NUMBER },
             carbs: { type: Type.NUMBER },
             fats: { type: Type.NUMBER },
-            servingSize: { type: Type.STRING }
+            servingSize: { type: Type.STRING },
+            instructions: { type: Type.STRING }
           },
-          required: ["name", "calories", "protein", "carbs", "fats", "servingSize"]
+          required: ["name", "calories", "protein", "carbs", "fats", "servingSize", "instructions"]
         }
       }
     });
