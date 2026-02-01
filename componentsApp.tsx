@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import IntakeForm from './components/IntakeForm';
@@ -7,9 +8,13 @@ import DailyLogging from './components/DailyLogging';
 import WorkoutTracker from './components/WorkoutTracker';
 import WeeklyCheckInForm from './components/WeeklyCheckInForm';
 import ClientProgressSummary from './components/ClientProgressSummary';
+import ReadinessHUD from './components/ReadinessHUD';
+import MuskyFitVault from './components/MuskyFitVault';
+import TransformationHub from './components/TransformationHub';
+import MuskyFitSupport from './components/MuskyFitSupport';
 import { generatePersonalizedPlan } from './services/geminiService';
 import { MOCK_CLIENTS } from './constants';
-import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn } from './types';
+import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn, ProgressPhoto } from './types';
 
 const App = () => {
   const [role, setRole] = useState<'COACH' | 'CLIENT'>('CLIENT');
@@ -61,6 +66,7 @@ const App = () => {
       exerciseProgress: {},
       logs: [],
       checkIns: [],
+      photos: [],
       performanceStatus: 'ON_TRACK'
     };
     setClients(prev => [...prev, newClient]);
@@ -94,6 +100,10 @@ const App = () => {
   const handleCheckInSubmit = (checkIn: WeeklyCheckIn) => {
     setClients(prev => prev.map(c => c.id === currentClientId ? { ...c, checkIns: [checkIn, ...(c.checkIns || [])] } : c));
     setActiveTab('client-dashboard');
+  };
+
+  const handlePhotoUpload = (photo: ProgressPhoto) => {
+    setClients(prev => prev.map(c => c.id === currentClientId ? { ...c, photos: [...(c.photos || []), photo] } : c));
   };
 
   const handleWorkoutFinish = (exerciseLogs: ExerciseLog[]) => {
@@ -139,25 +149,82 @@ const App = () => {
     }
 
     if (activeTab === 'client-dashboard') {
+      const latestCheckIn = currentClient.checkIns?.[0];
+      const readinessScore = latestCheckIn ? Math.max(10, 100 - (latestCheckIn.stressLevel * 10)) : 85;
+
       return (
-        <div className="space-y-10 pb-20 px-4 sm:px-0">
-          <div className="bg-slate-900 p-8 md:p-12 rounded-[2.5rem] border border-slate-800">
-             <h2 className="text-4xl font-black text-white metallic-text uppercase mb-2">Elite Hub</h2>
-             <p className="text-cyan-500 font-bold uppercase tracking-widest text-xs">Welcome back, {currentClient.profile.name}</p>
+        <div className="space-y-10 pb-20 px-4 sm:px-0 animate-in fade-in duration-1000">
+          <div className="bg-slate-900 p-8 md:p-12 rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden relative">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-[100px] -z-10" />
+             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                <div>
+                   <h2 className="text-5xl font-black text-white metallic-text uppercase mb-2 italic tracking-tighter leading-none">Elite Hub</h2>
+                   <p className="text-cyan-500 font-bold uppercase tracking-[0.4em] text-[10px]">Welcome back, Commander {currentClient.profile.name.split(' ')[0]}</p>
+                </div>
+                <div className="w-full md:w-auto">
+                   <ReadinessHUD score={readinessScore} sleep={latestCheckIn?.sleepHours || 7.5} stress={latestCheckIn?.stressLevel <= 4 ? 'Zen' : 'Physical Load'} />
+                </div>
+             </div>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            <button onClick={() => setActiveTab('workout')} className="p-8 bg-white rounded-3xl text-left"><span className="text-3xl block mb-4">🏋️</span><h3 className="font-black text-black italic">TRAIN</h3></button>
-            <button onClick={() => setActiveTab('log')} className="p-8 bg-cyan-600 rounded-3xl text-left"><span className="text-3xl block mb-4">🥗</span><h3 className="font-black text-white italic">MACROS</h3></button>
-            <button onClick={() => setActiveTab('checkin')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-left"><span className="text-3xl block mb-4">📅</span><h3 className="font-black text-white italic">CHECK-IN</h3></button>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            <button onClick={() => setActiveTab('workout')} className="p-8 bg-white rounded-3xl text-left hover:scale-[1.02] transition-transform shadow-2xl group relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-5 text-6xl rotate-12 group-hover:rotate-0 transition-transform">🏋️</div>
+               <span className="text-3xl block mb-4">⚔️</span>
+               <h3 className="font-black text-black italic uppercase tracking-tighter">TRAIN</h3>
+               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Session {currentClient.currentWorkoutIndex + 1}</p>
+            </button>
+            <button onClick={() => setActiveTab('log')} className="p-8 bg-cyan-600 rounded-3xl text-left hover:scale-[1.02] transition-transform shadow-2xl group relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl rotate-12 group-hover:rotate-0 transition-transform">🥩</div>
+               <span className="text-3xl block mb-4">🥗</span>
+               <h3 className="font-black text-white italic uppercase tracking-tighter">MACROS</h3>
+               <p className="text-[8px] font-bold text-cyan-200 uppercase tracking-widest mt-1">Refuel</p>
+            </button>
+            <button onClick={() => setActiveTab('photos')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-left hover:scale-[1.02] transition-transform shadow-2xl group relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl rotate-12 group-hover:rotate-0 transition-transform">📸</div>
+               <span className="text-3xl block mb-4">🖼️</span>
+               <h3 className="font-black text-white italic uppercase tracking-tighter">PROOFS</h3>
+               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Progress</p>
+            </button>
+            <button onClick={() => setActiveTab('concierge')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-left hover:scale-[1.02] transition-transform shadow-2xl group relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl rotate-12 group-hover:rotate-0 transition-transform">🤖</div>
+               <span className="text-3xl block mb-4">💬</span>
+               <h3 className="font-black text-white italic uppercase tracking-tighter">AI AGENT</h3>
+               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Concierge</p>
+            </button>
+            <button onClick={() => setActiveTab('vault')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-left hover:scale-[1.02] transition-transform shadow-2xl group relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl rotate-12 group-hover:rotate-0 transition-transform">📚</div>
+               <span className="text-3xl block mb-4">🧠</span>
+               <h3 className="font-black text-white italic uppercase tracking-tighter">VAULT</h3>
+               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Intel</p>
+            </button>
+            <button onClick={() => setActiveTab('checkin')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-left hover:scale-[1.02] transition-transform shadow-2xl group relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl rotate-12 group-hover:rotate-0 transition-transform">📈</div>
+               <span className="text-3xl block mb-4">📊</span>
+               <h3 className="font-black text-white italic uppercase tracking-tighter">REFLECT</h3>
+               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Weekly</p>
+            </button>
           </div>
-          <ClientProgressSummary logs={currentClient.logs} />
+          
+          <div className="grid lg:grid-cols-2 gap-10">
+             <ClientProgressSummary logs={currentClient.logs} />
+             <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 italic text-center">Coach's Directive</h4>
+                <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 italic text-sm text-slate-400 leading-relaxed shadow-inner">
+                   "{currentClient.plan?.coachAdvice || 'Stay focused on the step target. Movement is non-negotiable for metabolic health.'}"
+                </div>
+             </div>
+          </div>
         </div>
       );
     }
     if (activeTab === 'log') return <DailyLogging onSave={handleLogSave} targetMacros={currentClient?.plan?.trainingDayMacros} />;
     if (activeTab === 'checkin') return <WeeklyCheckInForm onSubmit={handleCheckInSubmit} />;
+    if (activeTab === 'photos') return <TransformationHub photos={currentClient?.photos || []} onUpload={handlePhotoUpload} />;
+    if (activeTab === 'concierge') return <MuskyFitSupport client={currentClient!} />;
     if (activeTab === 'workout') return <WorkoutTracker currentWorkout={currentClient.plan!.workoutSplit[currentClient.currentWorkoutIndex]} previousProgress={currentClient.exerciseProgress} onFinish={handleWorkoutFinish} />;
     if (activeTab === 'plans') return <PlanDisplay mealPlan={currentClient.plan?.mealPlan || []} workoutSplit={currentClient.plan?.workoutSplit || []} trainingDayMacros={currentClient.plan?.trainingDayMacros} restDayMacros={currentClient.plan?.restDayMacros} coachAdvice={currentClient.plan?.coachAdvice} />;
+    if (activeTab === 'vault') return <MuskyFitVault />;
     return null;
   };
 
