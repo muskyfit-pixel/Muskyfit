@@ -29,8 +29,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
     if (!searchTerm.trim() || !currentMeal) return;
     setIsSearching(true);
     try {
-      // Specifically hint for UK/Asian nutrition to Gemini for MuskyFit niche
-      const res = await searchUniversalFood(`${searchTerm} UK nutrition values for an Asian male training diet`);
+      const res = await searchUniversalFood(searchTerm);
       if (res) {
         const newFood: LoggedFood = {
           id: 'ai_' + Date.now() + Math.random().toString(36).substr(2, 9),
@@ -40,7 +39,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
           protein: Math.round(res.protein || 0),
           carbs: Math.round(res.carbs || 0),
           fats: Math.round(res.fats || 0),
-          servingSize: res.servingSize || 'Standard Serving',
+          servingSize: res.servingSize || '1 portion',
           category: currentMeal
         };
         setSelectedFoods(prev => [...prev, newFood]);
@@ -49,7 +48,6 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
       setCurrentMeal(null);
     } catch (err) {
       console.error("AI Search failed", err);
-      alert("Search failed. Try a simpler description.");
     } finally {
       setIsSearching(false);
     }
@@ -73,7 +71,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
             protein: Math.round(res.protein || 0),
             carbs: Math.round(res.carbs || 0),
             fats: Math.round(res.fats || 0),
-            servingSize: 'As Pictured',
+            servingSize: 'Plate',
             category: currentMeal
           };
           setSelectedFoods(prev => [...prev, newFood]);
@@ -88,17 +86,13 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const removeFood = (logId: number) => {
-    setSelectedFoods(prev => prev.filter(f => f.logId !== logId));
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-48 px-2 animate-in fade-in duration-700">
       {/* HUD: Macro Summary */}
       <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
         <div className="text-center md:text-left">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 italic">Energy Status</p>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 italic">Energy Consumption</p>
           <h2 className="text-4xl md:text-5xl font-black text-white italic tracking-tighter">
             {totals.calories} 
             <span className="text-slate-700 text-xl font-normal ml-2">/ {targetMacros.calories} kcal</span>
@@ -135,16 +129,16 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
             </div>
             <div className="space-y-3">
               {selectedFoods.filter(f => f.category === cat).map(f => (
-                <div key={f.logId} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl flex justify-between items-center text-xs font-bold italic shadow-sm">
+                <div key={f.id} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl flex justify-between items-center text-xs font-bold italic shadow-sm">
                   <div className="flex flex-col gap-1">
                     <span className="text-slate-300">{f.name}</span>
                     <span className="text-[10px] text-slate-600 font-normal">P: {f.protein}g | C: {f.carbs}g | F: {f.fats}g</span>
                   </div>
                   <div className="flex items-center gap-3 pl-4 border-l border-slate-900">
-                    <span className="text-cyan-500 whitespace-nowrap">{f.calories} kcal</span>
+                    <span className="text-cyan-500">{f.calories} kcal</span>
                     <button 
-                      onClick={() => removeFood(f.logId)}
-                      className="w-6 h-6 flex items-center justify-center rounded-lg bg-red-900/20 text-red-500 hover:bg-red-600 hover:text-white transition-all"
+                      onClick={() => setSelectedFoods(prev => prev.filter(item => item.id !== f.id))}
+                      className="text-red-900 hover:text-red-500 transition-colors px-2"
                     >
                       ×
                     </button>
@@ -152,9 +146,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
                 </div>
               ))}
               {selectedFoods.filter(f => f.category === cat).length === 0 && (
-                <div className="py-6 text-center">
-                   <p className="text-[11px] text-slate-700 italic tracking-[0.2em] uppercase">No logs registered</p>
-                </div>
+                <p className="text-[11px] text-slate-700 italic py-4 text-center tracking-widest uppercase">Protocol Pending</p>
               )}
             </div>
           </div>
@@ -165,18 +157,12 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
       {currentMeal && (
         <div className="fixed inset-0 bg-slate-950/98 backdrop-blur-xl z-[60] flex items-center justify-center p-6">
           <div className="w-full max-w-lg bg-slate-900 p-10 rounded-[3.5rem] border border-slate-800 shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-8">
-               <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Log {currentMeal}</h3>
-               <button onClick={() => setCurrentMeal(null)} className="text-slate-500 hover:text-white transition">
-                  <span className="text-2xl">×</span>
-               </button>
-            </div>
-            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Search MuskyFit Database</p>
+            <h3 className="text-3xl font-black text-white mb-8 italic uppercase tracking-tighter">Log {currentMeal}</h3>
             <input 
               type="text" 
               value={searchTerm} 
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="E.g. 200g Lean Tandoori Lamb..."
+              placeholder="Search or describe meal..."
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-white outline-none mb-8 focus:border-cyan-500 transition-all text-lg font-medium"
               onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
             />
@@ -184,7 +170,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
                <button 
                 onClick={handleAiSearch} 
                 disabled={isSearching || !searchTerm.trim()} 
-                className="flex-1 py-5 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl text-[10px] shadow-xl hover:bg-cyan-500 hover:text-white transition-all disabled:opacity-20"
+                className="flex-1 py-5 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl text-[10px] shadow-xl hover:bg-cyan-500 hover:text-white transition-all disabled:opacity-30"
                >
                  {isSearching ? 'Analysing...' : 'AI Search'}
                </button>
@@ -196,12 +182,18 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
                </button>
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+            <button 
+              onClick={() => { setCurrentMeal(null); setSearchTerm(''); }} 
+              className="w-full mt-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] hover:text-white transition"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
-      {/* Commit Button */}
-      <div className="fixed bottom-12 left-1/2 -translate-x-1/2 w-full max-w-sm px-6 z-50">
+      {/* Save Button */}
+      <div className="fixed bottom-12 left-1/2 -translate-x-1/2 w-full max-w-sm px-6">
          <button 
            onClick={() => {
              onSave({ 
@@ -214,10 +206,9 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
                workoutCompleted: false, 
                foods: selectedFoods 
              });
-             alert("Protocol Committed to Daily History.");
-             setSelectedFoods([]); // Reset for next day log if needed
+             alert("Protocol Committed.");
            }}
-           className="w-full py-6 bg-cyan-600 text-white font-black uppercase tracking-[0.3em] rounded-2xl shadow-[0_25px_50px_rgba(6,182,212,0.4)] hover:bg-cyan-500 transition-all italic text-[11px] border border-cyan-400/30 active:scale-95"
+           className="w-full py-6 bg-cyan-600 text-white font-black uppercase tracking-[0.3em] rounded-2xl shadow-2xl hover:bg-cyan-500 transition-all italic text-[11px] border border-cyan-400/30"
          >
            Commit Daily Protocol
          </button>
