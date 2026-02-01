@@ -76,7 +76,7 @@ const App = () => {
         }
       }
     } catch (e) {
-      console.error("Build Plan Error:", e);
+      console.error("Plan Gen Error:", e);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +91,7 @@ const App = () => {
           stressLevel: 5,
           sleepHours: 8,
           digestionStatus: 'Elite',
-          clientComments: 'System generated review record',
+          clientComments: 'Coach review update',
           review: review
         };
         return { ...c, checkIns: [newCheckIn, ...c.checkIns] };
@@ -133,19 +133,40 @@ const App = () => {
     }
 
     switch (activeTab) {
-      case 'log': return <DailyLogging onSave={(log) => updateClientData(currentClient.id, { logs: [log, ...currentClient.logs] })} targetMacros={currentClient.plan?.trainingDayMacros} />;
-      case 'workout': return currentClient.plan ? <WorkoutTracker currentWorkout={currentClient.plan.workoutSplit[currentClient.currentWorkoutIndex]} previousProgress={currentClient.exerciseProgress} onFinish={() => { setActiveTab('client-dashboard'); updateClientData(currentClient.id, { currentWorkoutIndex: (currentClient.currentWorkoutIndex + 1) % currentClient.plan!.workoutSplit.length }); }} /> : null;
-      case 'check-in': return <WeeklyCheckInForm onSubmit={(ci) => updateClientData(currentClient.id, { checkIns: [ci, ...currentClient.checkIns] })} />;
-      case 'concierge': return <MuskyFitSupport client={currentClient} />;
-      case 'plans': return currentClient.plan ? <PlanDisplay mealPlan={currentClient.plan.mealPlan} workoutSplit={currentClient.plan.workoutSplit} trainingDayMacros={currentClient.plan.trainingDayMacros} /> : null;
-      case 'vault': return <MuskyFitVault />;
-      case 'transformation': return <TransformationHub photos={currentClient.photos} onUpload={(p) => updateClientData(currentClient.id, { photos: [p, ...currentClient.photos] })} biometrics={`${currentClient.intake?.weight}kg, ${currentClient.intake?.height}cm`} />;
-      case 'reviews': return <WeeklyReviewView reviews={currentClient.checkIns.filter(ci => ci.review).map(ci => ci.review!)} />;
-      case 'strength': return <StrengthMatrix pbs={currentClient.personalBests} />;
-      case 'radar': return <ResourceRadar />;
+      case 'log': 
+        return <DailyLogging 
+          onSave={(log) => updateClientData(currentClient.id, { logs: [log, ...currentClient.logs] })} 
+          targetMacros={currentClient.plan?.trainingDayMacros} 
+        />;
+      case 'workout': 
+        return currentClient.plan ? <WorkoutTracker 
+          currentWorkout={currentClient.plan.workoutSplit[currentClient.currentWorkoutIndex]} 
+          previousProgress={currentClient.exerciseProgress} 
+          onFinish={() => { 
+            setActiveTab('client-dashboard'); 
+            updateClientData(currentClient.id, { currentWorkoutIndex: (currentClient.currentWorkoutIndex + 1) % currentClient.plan!.workoutSplit.length }); 
+          }} 
+        /> : null;
+      case 'check-in': 
+        return <WeeklyCheckInForm onSubmit={(ci) => updateClientData(currentClient.id, { checkIns: [ci, ...currentClient.checkIns] })} />;
+      case 'concierge': 
+        return <MuskyFitSupport client={currentClient} />;
+      case 'plans': 
+        return currentClient.plan ? <PlanDisplay mealPlan={currentClient.plan.mealPlan} workoutSplit={currentClient.plan.workoutSplit} trainingDayMacros={currentClient.plan.trainingDayMacros} /> : null;
+      case 'vault': 
+        return <MuskyFitVault />;
+      case 'transformation': 
+        return <TransformationHub photos={currentClient.photos} onUpload={(p) => updateClientData(currentClient.id, { photos: [p, ...currentClient.photos] })} biometrics={`${currentClient.intake?.weight}kg, ${currentClient.intake?.height}cm`} />;
+      case 'reviews': 
+        return <WeeklyReviewView reviews={currentClient.checkIns.filter(ci => ci.review).map(ci => ci.review!)} />;
+      case 'strength': 
+        return <StrengthMatrix pbs={currentClient.personalBests} />;
+      case 'radar': 
+        return <ResourceRadar />;
       default: 
         return (
           <div className="space-y-6 pb-24 animate-in fade-in duration-700">
+            {/* Dashboard Header */}
             <div className="bg-slate-900/50 p-8 rounded-[2.5rem] border border-slate-800 flex justify-between items-center shadow-xl">
               <div>
                 <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Hi, {currentClient.profile.name}</h2>
@@ -158,6 +179,7 @@ const App = () => {
 
             <ReadinessHUD score={94} sleep={7.8} stress="Optimal" />
 
+            {/* Main Actions */}
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 flex flex-col justify-between group hover:border-cyan-500 transition-all cursor-pointer shadow-2xl relative overflow-hidden" onClick={() => setActiveTab('workout')}>
                  <div className="absolute top-0 right-0 p-8 opacity-5 text-6xl font-black italic uppercase">Lift</div>
@@ -188,6 +210,7 @@ const App = () => {
               </div>
             </div>
 
+            {/* Quick Links */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                <button onClick={() => setActiveTab('vault')} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 text-[10px] font-black text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest italic">The Vault</button>
                <button onClick={() => setActiveTab('transformation')} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 text-[10px] font-black text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest italic">Progress</button>
