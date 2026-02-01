@@ -2,7 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { IntakeData, Meal, WorkoutDay, MacroSplit, FoodItem, DailyLog, WeeklyCheckIn } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Always use new instance with direct process.env.API_KEY
+const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export async function generatePerformanceReport(clientName: string, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<string> {
   const prompt = `
@@ -12,30 +13,31 @@ export async function generatePerformanceReport(clientName: string, logs: DailyL
     
     TASK: Write an elite, high-performance coaching report in British English for the MuskyFit brand.
     - Context: High-level professional Asian male.
-    - Priorities: V-Taper progress, metabolic health, and corporate-lifestyle stress management.
-    - Style: Authoritative, concise, and focused on "The Elite Protocol."
+    - Style: Direct, elite, concise.
   `;
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
     });
-    return response.text || "Report generation standby. Keep logging.";
+    return response.text || "Report unavailable.";
   } catch (e) {
-    return "Error generating elite intelligence report. Please check data logs.";
+    return "Intelligence report generation currently offline.";
   }
 }
 
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
-  const prompt = `Find 3 high-protein macro-equivalent alternatives for "${meal.name}" (Cals:${meal.macros.calories}, P:${meal.macros.p}). Focus on Asian staples (Lentils, Paneer, Lean Halal meats). Return list only.`;
+  const prompt = `Find 3 high-protein alternatives for "${meal.name}" (Cals:${meal.macros.calories}, P:${meal.macros.p}). Return list only.`;
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
     });
     return response.text.split('\n').filter(s => s.trim().length > 0).slice(0, 3);
   } catch (e) {
-    return ["Tandoori Salmon & Asparagus", "Low-Fat Paneer Bhurji", "Lean Beef & Broccoli"];
+    return ["Grilled Chicken & Rice", "Paneer Bhurji", "Lean Beef & Broccoli"];
   }
 }
 
@@ -48,23 +50,14 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
 }> {
   const systemInstruction = `
     You are the MUSKYFIT MASTER COACH. 
-    Niche: Elite Body Transformation for Asian Men (30-50 Professionals/Executives).
-    
-    CRITICAL FOCUS AREAS:
-    1. V-TAPER AESTHETICS: Focus on lateral delts, lat width, and waist management.
-    2. POSTURE: Correct 'Desk Neck' and rounded shoulders via Face Pulls and Thoracic work.
-    3. ASIAN NUTRITION: Optimize Basmati, Dal, and Chapatis for high protein/fat loss.
-    
-    VOICE: Direct, British, Professional, Elite.
+    Niche: Elite Body Transformation for Asian Men.
+    Focus: V-Taper, Posture, and Asian Nutrition Optimization.
   `;
 
-  const userPrompt = `
-    Build a 4-week block for ${data.name}.
-    Goal: ${data.goal} | Preferences: ${data.culturalPreference} (${data.dietPreference}).
-    Training Frequency: ${data.trainingDaysPerWeek} days/week.
-  `;
+  const userPrompt = `Build bespoke protocol for ${data.name}. Goal: ${data.goal}. Preferences: ${data.culturalPreference}.`;
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview", 
       contents: userPrompt,
@@ -136,13 +129,14 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
 
     return JSON.parse(response.text || '{}');
   } catch (e) {
-    throw new Error("Protocol engine failure. Ensure API access.");
+    throw new Error("Protocol generator failure.");
   }
 }
 
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
-  const prompt = `Calculate calories, protein, carbs, and fats for 100g of: "${query}". Identify cultural staples. Return JSON.`;
+  const prompt = `Macros for 100g of: "${query}". Return JSON.`;
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
