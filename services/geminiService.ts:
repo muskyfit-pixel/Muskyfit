@@ -1,0 +1,155 @@
+import { GoogleGenAI, Type } from "@google/genai";
+import { IntakeData, Meal, DailyLog, WeeklyCheckIn, FoodItem } from "../types";
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
+  const response = await ai.models.generateContent({
+    // Use gemini-3-pro-preview for complex reasoning task (plan generation)
+    model: "gemini-3-pro-preview",
+    contents: `Build a 12-week protocol for ${data.name}. Focus: Asian Male Professional. Goal: ${data.goal}. Preference: ${data.culturalPreference}. Include a meal plan with specific ingredients and instructions, plus a workout split.`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          trainingDayMacros: { 
+            type: Type.OBJECT, 
+            properties: { 
+              calories: { type: Type.NUMBER }, 
+              p: { type: Type.NUMBER }, 
+              c: { type: Type.NUMBER }, 
+              f: { type: Type.NUMBER } 
+            } 
+          },
+          restDayMacros: { 
+            type: Type.OBJECT, 
+            properties: { 
+              calories: { type: Type.NUMBER }, 
+              p: { type: Type.NUMBER }, 
+              c: { type: Type.NUMBER }, 
+              f: { type: Type.NUMBER } 
+            } 
+          },
+          mealPlan: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                mealType: { type: Type.STRING }, 
+                name: { type: Type.STRING }, 
+                ingredients: { type: Type.ARRAY, items: { type: Type.STRING } }, 
+                instructions: { type: Type.STRING }, 
+                macros: { 
+                  type: Type.OBJECT,
+                  properties: {
+                    calories: { type: Type.NUMBER },
+                    p: { type: Type.NUMBER },
+                    c: { type: Type.NUMBER },
+                    f: { type: Type.NUMBER }
+                  }
+                },
+                substitutes: { type: Type.ARRAY, items: { type: Type.STRING } }
+              } 
+            } 
+          },
+          workoutSplit: { 
+            type: Type.ARRAY, 
+            items: { 
+              type: Type.OBJECT, 
+              properties: { 
+                id: { type: Type.STRING }, 
+                title: { type: Type.STRING }, 
+                exercises: { 
+                  type: Type.ARRAY, 
+                  items: { 
+                    type: Type.OBJECT,
+                    properties: {
+                      id: { type: Type.STRING },
+                      name: { type: Type.STRING },
+                      sets: { type: Type.NUMBER },
+                      reps: { type: Type.STRING },
+                      targetRpe: { type: Type.NUMBER },
+                      tempo: { type: Type.STRING },
+                      notes: { type: Type.STRING }
+                    }
+                  } 
+                } 
+              } 
+            } 
+          },
+          coachAdvice: { type: Type.STRING }
+        }
+      }
+    }
+  });
+  return JSON.parse(response.text || '{}');
+}
+
+export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
+  const response = await ai.models.generateContent({
+    // Use gemini-3-flash-preview for basic data retrieval tasks
+    model: "gemini-3-flash-preview",
+    contents: `Nutritional values for 100g of ${query}.`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          calories: { type: Type.NUMBER },
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fats: { type: Type.NUMBER },
+          servingSize: { type: Type.STRING }
+        }
+      }
+    }
+  });
+  try {
+    const res = JSON.parse(response.text || '{}');
+    return { ...res, id: 'ai_' + Date.now(), type: 'INDIAN' };
+  } catch { return null; }
+}
+
+/**
+ * Added missing export to fix Error in file components/PlanDisplay.tsx on line 4
+ * Fetches macro-equivalent meal alternatives using Gemini.
+ */
+export async function getMealAlternatives(meal: Meal): Promise<string[]> {
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `Suggest 3 alternative meal names for: ${meal.name} (${meal.macros.calories}kcal, P:${meal.macros.p}g, C:${meal.macros.c}g, F:${meal.macros.f}g). Ensure they are macro-equivalent.`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING }
+      }
+    }
+  });
+  try {
+    const text = response.text || '[]';
+    return JSON.parse(text.trim());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Added missing export to fix Error in file components/CoachDashboard.tsx on line 4
+ * Generates an AI-driven coaching performance synthesis based on biometrics and check-in.
+ */
+export async function generatePerformanceReport(name: string, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<string> {
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `Analyze performance for ${name}.
+    Logs (steps/calories): ${logs.slice(0, 5).map(l => `${l.steps}/${l.caloriesConsumed}`).join(', ')}.
+    Check-in: Energy ${checkIn.energyLevel}/10, Stress ${checkIn.stressLevel}/10, Sleep ${checkIn.sleepHours}h.
+    Coach Synthesis:`,
+    config: {
+      systemInstruction: "You are an elite fitness coach. Provide a brief, high-impact performance summary (2-3 sentences)."
+    }
+  });
+  return response.text || "Analysis unavailable.";
+}
