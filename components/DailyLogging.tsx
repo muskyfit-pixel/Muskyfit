@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { searchUniversalFood } from '../services/geminiService';
+
+import React, { useState, useRef } from 'react';
+import { searchUniversalFood, analyzeMealPhoto } from '../services/geminiService';
 import { MacroSplit, DailyLog, MealCategory, LoggedFood } from '../types';
 
 interface DailyLoggingProps {
@@ -14,6 +15,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [currentMeal, setCurrentMeal] = useState<MealCategory | null>(null);
   const [rituals, setRituals] = useState({ mobility: false, supplements: false, morningSunlight: false, noPhoneBeforeBed: false });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totals = selectedFoods.reduce((acc, f) => ({
     calories: acc.calories + f.calories,
@@ -35,6 +37,35 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
     } finally {
       setIsAiSearching(false);
     }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentMeal) return;
+
+    setIsAiSearching(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = (reader.result as string).split(',')[1];
+      const result = await analyzeMealPhoto(base64);
+      if (result) {
+        setSelectedFoods(prev => [...prev, { 
+          id: 'v_' + Date.now(),
+          name: result.name || 'Analyzed Meal',
+          calories: result.calories || 0,
+          protein: result.protein || 0,
+          carbs: result.carbs || 0,
+          fats: result.fats || 0,
+          type: 'WESTERN',
+          servingSize: result.servingSize || '1 portion',
+          logId: Date.now(), 
+          category: currentMeal 
+        }]);
+        setCurrentMeal(null);
+      }
+      setIsAiSearching(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -99,8 +130,54 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
         ))}
       </div>
 
+      {currentMeal && (
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[60] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+          <div className="max-w-xl w-full bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl relative">
+            <button onClick={() => setCurrentMeal(null)} className="absolute top-8 right-8 text-slate-500 hover:text-white text-2xl">×</button>
+            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Log {currentMeal}</h3>
+            <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-[0.3em] mb-10">Select Method</p>
+            
+            <div className="space-y-4">
+               <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-8 bg-slate-950 border border-slate-800 rounded-3xl text-center hover:border-cyan-500 transition-all group"
+                  >
+                    <span className="text-3xl mb-3 block group-hover:scale-110 transition">📸</span>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">AI Vision</span>
+                  </button>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handlePhotoUpload} />
+                  
+                  <div className="p-8 bg-slate-950 border border-slate-800 rounded-3xl text-center">
+                    <span className="text-3xl mb-3 block">⌨️</span>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Manual</span>
+                  </div>
+               </div>
+
+               <div className="pt-6 border-t border-slate-800">
+                  <input 
+                    type="text" 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)} 
+                    placeholder="Search or describe meal..." 
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-white outline-none focus:border-cyan-500 transition-all placeholder:text-slate-700" 
+                    onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
+                  />
+                  <button 
+                    onClick={handleAiSearch} 
+                    disabled={isAiSearching || !searchTerm.trim()} 
+                    className="w-full mt-4 py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic disabled:opacity-20"
+                  >
+                    {isAiSearching ? 'Analyzing...' : 'Commit Search'}
+                  </button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800">
-         <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-6 italic">High Performance Rituals</h3>
+         <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-6 italic">Consistency Protocol</h3>
          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { id: 'mobility', label: 'Mobility', icon: '🧘' },
@@ -119,48 +196,6 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
             ))}
          </div>
       </div>
-
-      <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 flex justify-between items-center">
-         <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Step Counter</p>
-            <input 
-               type="number" 
-               value={steps} 
-               onChange={e => setSteps(Number(e.target.value))} 
-               className="bg-transparent text-3xl font-black text-white outline-none w-32 border-b border-slate-800 focus:border-cyan-500 transition" 
-            />
-         </div>
-         <div className="w-16 h-16 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center text-2xl">👟</div>
-      </div>
-
-      {currentMeal && (
-        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[60] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
-          <div className="max-w-xl w-full bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl relative">
-            <button onClick={() => setCurrentMeal(null)} className="absolute top-8 right-8 text-slate-500 hover:text-white text-2xl">×</button>
-            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Log {currentMeal}</h3>
-            <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-[0.3em] mb-10">AI-Powered Nutrient Analysis</p>
-            
-            <div className="space-y-6">
-               <input 
-                  type="text" 
-                  value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)} 
-                  placeholder="e.g. 2 Chapatis and Daal..." 
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-white outline-none focus:border-cyan-500 transition-all placeholder:text-slate-700" 
-                  onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
-                  autoFocus
-               />
-               <button 
-                  onClick={handleAiSearch} 
-                  disabled={isAiSearching || !searchTerm.trim()} 
-                  className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic disabled:opacity-20"
-               >
-                  {isAiSearching ? 'Analyzing Intelligence...' : 'Identify Nutrition'}
-               </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs px-6 z-[50]">
         <button 
