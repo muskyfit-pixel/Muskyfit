@@ -1,6 +1,8 @@
 
 {
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ]
 }
+v
