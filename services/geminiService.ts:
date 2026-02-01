@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { IntakeData, Meal, WorkoutDay, MacroSplit, FoodItem, DailyLog, WeeklyCheckIn } from "../types";
 
-// Always use new instance with direct process.env.API_KEY
+// Standard initialization for the platform
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export async function generatePerformanceReport(clientName: string, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<string> {
@@ -13,7 +13,8 @@ export async function generatePerformanceReport(clientName: string, logs: DailyL
     
     TASK: Write an elite, high-performance coaching report in British English for the MuskyFit brand.
     - Context: High-level professional Asian male.
-    - Style: Direct, elite, concise.
+    - Focus: Compliance, stress management, and V-Taper progress.
+    - Style: Direct, authoritative, and concise.
   `;
   try {
     const ai = getAI();
@@ -21,14 +22,14 @@ export async function generatePerformanceReport(clientName: string, logs: DailyL
       model: "gemini-3-flash-preview",
       contents: prompt,
     });
-    return response.text || "Report unavailable.";
+    return response.text || "Analysis pending. Continue following the protocol.";
   } catch (e) {
-    return "Intelligence report generation currently offline.";
+    return "Intelligence report generation error. Data integrity maintained.";
   }
 }
 
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
-  const prompt = `Find 3 high-protein alternatives for "${meal.name}" (Cals:${meal.macros.calories}, P:${meal.macros.p}). Return list only.`;
+  const prompt = `Find 3 high-protein alternatives for "${meal.name}" (Cals:${meal.macros.calories}, P:${meal.macros.p}). Focus on Asian staples. Return list only.`;
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
@@ -51,10 +52,10 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
   const systemInstruction = `
     You are the MUSKYFIT MASTER COACH. 
     Niche: Elite Body Transformation for Asian Men.
-    Focus: V-Taper, Posture, and Asian Nutrition Optimization.
+    Focus: V-Taper aesthetics, Posture correction (Desk Neck), and Asian-inspired high-protein nutrition.
   `;
 
-  const userPrompt = `Build bespoke protocol for ${data.name}. Goal: ${data.goal}. Preferences: ${data.culturalPreference}.`;
+  const userPrompt = `Build a bespoke 4-week protocol for ${data.name}. Goal: ${data.goal}. Preferences: ${data.culturalPreference}. Weight: ${data.weight}kg.`;
 
   try {
     const ai = getAI();
@@ -129,12 +130,12 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<{
 
     return JSON.parse(response.text || '{}');
   } catch (e) {
-    throw new Error("Protocol generator failure.");
+    throw new Error("Protocol generation failed. Check API Key and configuration.");
   }
 }
 
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
-  const prompt = `Macros for 100g of: "${query}". Return JSON.`;
+  const prompt = `Provide calories, protein, carbs, and fats for 100g of: "${query}". Identify if it is an Asian staple. Return JSON.`;
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
