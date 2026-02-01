@@ -29,59 +29,70 @@ const IntakeForm: React.FC<IntakeFormProps> = ({ onSubmit, isLoading }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-slate-900 rounded-3xl border border-slate-800 p-8 shadow-2xl mb-20">
+    <div className="max-w-2xl mx-auto bg-slate-900 rounded-[3rem] border border-slate-800 p-10 shadow-2xl mb-20 animate-in fade-in zoom-in duration-500">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-white mb-2 italic uppercase">Client Intake</h2>
-        <p className="text-sm text-slate-500">Please provide your details for your bespoke programme.</p>
+        <h2 className="text-4xl font-black text-white mb-2 italic uppercase metallic-text">MuskyFit Application</h2>
+        <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-[0.4em] italic mt-2">Elite Lifestyle Protocol</p>
       </div>
 
       {step === 1 && (
         <div className="space-y-6 animate-in fade-in duration-500">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label>
-            <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white" placeholder="Enter your name" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white" placeholder="email@example.com" />
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Full Name</label>
+            <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white outline-none focus:border-cyan-500 transition" placeholder="Enter your name" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Weight (kg)</label>
-              <input type="number" name="weight" value={formData.weight} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white" />
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Date of Birth</label>
+              <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white outline-none focus:border-cyan-500" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Height (cm)</label>
-              <input type="number" name="height" value={formData.height} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white" />
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Gender</label>
+              <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white outline-none focus:border-cyan-500">
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="NON_BINARY">Other/Prefer not to say</option>
+              </select>
             </div>
           </div>
-          <button onClick={() => setStep(2)} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-cyan-500 hover:text-white transition">Next Step</button>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Weight (kg)</label>
+              <input type="number" name="weight" value={formData.weight} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white outline-none focus:border-cyan-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Height (cm)</label>
+              <input type="number" name="height" value={formData.height} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white outline-none focus:border-cyan-500" />
+            </div>
+          </div>
+          <button onClick={() => setStep(2)} className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl text-[10px] shadow-xl hover:bg-cyan-500 hover:text-white transition-all">Next Phase</button>
         </div>
       )}
 
       {step === 2 && (
         <div className="space-y-6 animate-in fade-in duration-500">
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">What is your main goal?</label>
-            <select name="goal" value={formData.goal} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white">
-              <option value="FAT_LOSS">Fat Loss / Toning</option>
-              <option value="MUSCLE_GAIN">Build Muscle / Strength</option>
-              <option value="STRENGTH">Power / Strength</option>
-              <option value="LONGEVITY_HEALTH">General Health & Longevity</option>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Primary Objective</label>
+            <select name="goal" value={formData.goal} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white outline-none focus:border-cyan-500">
+              <option value="FAT_LOSS">Fat Loss & Aesthetic Definition</option>
+              <option value="MUSCLE_GAIN">Hypertrophy & Athletic Build</option>
+              <option value="LONGEVITY_HEALTH">Longevity & Metabolic Health (30+)</option>
+              <option value="STRENGTH">Functional Power & Resilience</option>
+              <option value="ATHLETIC_PERFORMANCE">Peak Sport Conditioning</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Dietary Choice</label>
-            <select name="dietPreference" value={formData.dietPreference} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white">
-              <option value="NON_VEG">Eat Meat & Vegetables</option>
-              <option value="VEGETARIAN">Vegetarian</option>
-              <option value="VEGAN">Vegan</option>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Lifestyle Environment</label>
+            <select name="jobType" value={formData.jobType} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white outline-none focus:border-cyan-500">
+              <option value="Desk">Corporate / High Stress Desk</option>
+              <option value="Active">Mobile / On-the-go</option>
+              <option value="Physical Labour">High Intensity Physical</option>
             </select>
           </div>
           <div className="flex gap-4">
-            <button onClick={() => setStep(1)} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl">Back</button>
-            <button onClick={() => onSubmit(formData)} disabled={isLoading} className="flex-[2] py-4 bg-cyan-600 text-white font-bold rounded-xl">
-              {isLoading ? 'Creating Plan...' : 'Submit Application'}
+            <button onClick={() => setStep(1)} className="flex-1 py-5 bg-slate-800 text-white font-black uppercase tracking-widest rounded-2xl text-[10px]">Back</button>
+            <button onClick={() => onSubmit(formData)} disabled={isLoading} className="flex-[2] py-5 bg-cyan-600 text-white font-black uppercase tracking-[0.2em] rounded-2xl text-[10px] shadow-xl hover:bg-cyan-500 transition-all">
+              {isLoading ? 'Engineering Protocol...' : 'Finalise Application'}
             </button>
           </div>
         </div>
