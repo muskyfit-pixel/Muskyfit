@@ -1,19 +1,35 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { IntakeData, Meal, DailyLog, WeeklyCheckIn, FoodItem } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const calculateAge = (dob: string): number => {
+  const birthday = new Date(dob);
+  const ageDifMs = Date.now() - birthday.getTime();
+  const ageDate = new Date(ageDifMs);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
+};
+
 export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
+  const age = calculateAge(data.dob);
+  const isLifestyleNiche = age >= 30;
+
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
-    contents: `Build a highly elite 12-week physique protocol for ${data.name}. 
-    Biometrics: ${data.weight}kg, ${data.height}cm. 
-    Target Audience: High-performance South Asian Male Professional.
-    Goal: ${data.goal} (Focus on V-Taper aesthetics). 
-    Cultural Context: ${data.culturalPreference} (${data.dietPreference}).
+    contents: `Build a highly elite 12-week bespoke fitness protocol for ${data.name}. 
+    Biometrics: ${age} years old, ${data.gender}, ${data.weight}kg, ${data.height}cm. 
+    Profile: ${isLifestyleNiche ? '30+ Lifestyle Professional Focus (Priority: Joint health, longevity, and high-performance recovery)' : 'High Intensity / Performance Focus'}.
+    Goal: ${data.goal}. 
+    Cultural Nutrition Context: ${data.culturalPreference} (${data.dietPreference}).
     Exclusions: ${data.religiousExclusions}.
-    Include Indian superfoods like Makhana, Ghee (controlled), and Daal as high-protein sources.
-    Provide coaching advice focused on high-pressure corporate lifestyles.`,
+    Activity Level: ${data.activityLevel} with a ${data.jobType} career.
+    
+    Specific coaching directives:
+    1. If age > 30, emphasize mobility and "Pre-hab" exercises.
+    2. If goal is longevity, focus on lean muscle maintenance and cardiovascular health.
+    3. Include culturally relevant high-protein food options for ${data.culturalPreference} context.
+    4. Ensure training volume is sustainable for a ${data.jobType} lifestyle.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -106,7 +122,7 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Nutritional data for 100g of ${query}. Use standard USDA or Indian Food Composition Tables.`,
+    contents: `Nutritional data for 100g of ${query}. Use global or regional context depending on food name.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -129,7 +145,7 @@ export async function searchUniversalFood(query: string): Promise<FoodItem | nul
   
   try {
     const res = JSON.parse(text);
-    return { ...res, id: 'ai_' + Date.now(), type: 'INDIAN' };
+    return { ...res, id: 'ai_' + Date.now(), type: 'WESTERN' };
   } catch { 
     return null; 
   }
@@ -166,7 +182,7 @@ export async function generatePerformanceReport(name: string, logs: DailyLog[], 
     Compliance: ${logs.filter(l => l.workoutCompleted).length} training sessions this week.
     Stress/Sleep: ${checkIn.stressLevel}/10 stress, ${checkIn.sleepHours}h sleep.`,
     config: {
-      systemInstruction: "You are the head coach at MUSKYFIT. Provide a high-level, encouraging but firm performance summary in 3 concise sentences."
+      systemInstruction: "You are the head coach at MUSKYFIT. Provide an elite performance summary. If the client is 30+, highlight recovery and consistent longevity wins."
     }
   });
   return response.text || "Report pending...";
