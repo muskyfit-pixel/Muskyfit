@@ -13,6 +13,15 @@ export interface UserProfile {
   phone?: string;
 }
 
+export interface WeeklyReview {
+  id: string;
+  date: string;
+  adherenceScore: number;
+  coachMessage: string;
+  directives: string[];
+  status: 'GREEN' | 'AMBER' | 'RED';
+}
+
 export interface WeeklyCheckIn {
   date: string;
   energyLevel: number;
@@ -20,7 +29,7 @@ export interface WeeklyCheckIn {
   sleepHours: number;
   digestionStatus: string;
   clientComments: string;
-  coachFeedback?: string;
+  review?: WeeklyReview;
 }
 
 export interface ProgressPhoto {
