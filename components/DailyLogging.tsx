@@ -26,15 +26,27 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
     if (!searchTerm.trim() || !currentMeal) return;
     setIsSearching(true);
     try {
-      // Specifically hint for UK/Asian nutrition to Gemini for your MuskyFit niche
-      const res = await searchUniversalFood(`${searchTerm} UK nutrition values`);
+      // Specifically hint for UK/Asian nutrition to Gemini for MuskyFit
+      const res = await searchUniversalFood(`${searchTerm} UK nutrition values for Asian male diet`);
       if (res) {
-        setSelectedFoods(prev => [...prev, { ...res, logId: Date.now(), category: currentMeal }]);
+        // We add missing mandatory fields like 'id' and 'servingSize' to satisfy the Type system
+        const newFood: LoggedFood = {
+          id: 'ai_' + Date.now(),
+          logId: Date.now(),
+          name: res.name || searchTerm,
+          calories: res.calories || 0,
+          protein: res.protein || 0,
+          carbs: res.carbs || 0,
+          fats: res.fats || 0,
+          servingSize: res.servingSize || '1 portion',
+          category: currentMeal
+        };
+        setSelectedFoods(prev => [...prev, newFood]);
       }
       setSearchTerm('');
       setCurrentMeal(null);
     } catch (err) {
-      console.error("AI Search failed", err);
+      console.error("MuskyFit AI Search failed", err);
     } finally {
       setIsSearching(false);
     }
@@ -50,7 +62,18 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
       try {
         const res = await analyzeMealPhoto(base64);
         if (res) {
-          setSelectedFoods(prev => [...prev, { ...res, logId: Date.now(), category: currentMeal }]);
+          const newFood: LoggedFood = {
+            id: 'photo_' + Date.now(),
+            logId: Date.now(),
+            name: res.name || 'Analyzed Meal',
+            calories: res.calories || 0,
+            protein: res.protein || 0,
+            carbs: res.carbs || 0,
+            fats: res.fats || 0,
+            servingSize: res.servingSize || 'As pictured',
+            category: currentMeal
+          };
+          setSelectedFoods(prev => [...prev, newFood]);
         }
       } catch (err) {
         console.error("Photo analysis failed", err);
@@ -64,11 +87,11 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-48 px-2 animate-in fade-in duration-700">
-      {/* HUD: Macro Summary */}
+      {/* HUD: Macro Summary - The Dashboard of the Protocol */}
       <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
         <div>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 italic">Energy Status</p>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 italic">Nutrient Density Status</p>
           <h2 className="text-4xl md:text-5xl font-black text-white italic tracking-tighter">
             {totals.calories} 
             <span className="text-slate-700 text-xl font-normal ml-2">/ {targetMacros.calories} kcal</span>
@@ -90,7 +113,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
         </div>
       </div>
 
-      {/* Meal Slots */}
+      {/* Meal Slots with MuskyFit Styling */}
       <div className="grid md:grid-cols-2 gap-6">
         {(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'] as MealCategory[]).map(cat => (
           <div key={cat} className="bg-slate-900/40 p-8 rounded-[2.5rem] border border-slate-800 shadow-lg group hover:border-slate-700 transition-colors">
@@ -108,13 +131,13 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
                 <div key={f.logId} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl flex justify-between items-center text-xs font-bold italic shadow-sm group/item">
                   <div className="flex flex-col">
                     <span className="text-slate-300">{f.name}</span>
-                    <span className="text-[10px] text-slate-600 font-normal">P: {f.protein}g | C: {f.carbs}g | F: {f.fats}g</span>
+                    <span className="text-[10px] text-slate-600 font-normal">{f.servingSize} | P: {f.protein}g</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-cyan-500">{f.calories} kcal</span>
                     <button 
                       onClick={() => setSelectedFoods(prev => prev.filter(item => item.logId !== f.logId))}
-                      className="text-red-900 hover:text-red-500 transition-colors"
+                      className="text-red-900 hover:text-red-500 transition-colors px-2"
                     >
                       ×
                     </button>
@@ -122,7 +145,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
                 </div>
               ))}
               {selectedFoods.filter(f => f.category === cat).length === 0 && (
-                <p className="text-[11px] text-slate-700 italic py-4 text-center tracking-widest uppercase">Pending Log</p>
+                <p className="text-[11px] text-slate-700 italic py-4 text-center tracking-widest uppercase">Protocol Pending</p>
               )}
             </div>
           </div>
@@ -138,7 +161,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
               type="text" 
               value={searchTerm} 
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="E.g. 200g Grilled Tandoori Lamb..."
+              placeholder="E.g. 200g Lean Tandoori Chicken breast..."
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-white outline-none mb-8 focus:border-cyan-500 transition-all text-lg font-medium"
             />
             <div className="flex gap-4">
@@ -158,7 +181,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
             <button 
-              onClick={() => setCurrentMeal(null)} 
+              onClick={() => { setCurrentMeal(null); setSearchTerm(''); }} 
               className="w-full mt-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] hover:text-white transition"
             >
               Cancel
@@ -167,7 +190,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
         </div>
       )}
 
-      {/* Save Button */}
+      {/* Persistent Save Button */}
       <div className="fixed bottom-12 left-1/2 -translate-x-1/2 w-full max-w-sm px-6">
          <button 
            onClick={() => {
@@ -193,3 +216,4 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
 };
 
 export default DailyLogging;
+v
