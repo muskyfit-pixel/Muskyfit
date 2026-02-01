@@ -1,6 +1,6 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { IntakeData, Meal, DailyLog, WeeklyCheckIn, FoodItem, WeeklyReview } from "../types";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { IntakeData, Meal, DailyLog, WeeklyCheckIn, FoodItem, WeeklyReview, LoggedFood } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -19,17 +19,14 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
     model: "gemini-3-pro-preview",
     contents: `Build a highly elite 12-week bespoke fitness protocol for ${data.name}. 
     Biometrics: ${age} years old, ${data.gender}, ${data.weight}kg, ${data.height}cm. 
-    Profile: ${isLifestyleNiche ? '30+ Lifestyle Professional Focus (Priority: Joint health, longevity, and high-performance recovery)' : 'High Intensity / Performance Focus'}.
+    Profile: ${isLifestyleNiche ? '30+ Lifestyle Professional Focus' : 'High Performance Focus'}.
     Goal: ${data.goal}. 
     Cultural Nutrition Context: ${data.culturalPreference} (${data.dietPreference}).
-    Exclusions: ${data.religiousExclusions}.
-    Activity Level: ${data.activityLevel} with a ${data.jobType} career.
     
-    Specific coaching directives for MUSKYFIT Team:
-    1. GENDER-SPECIFIC: If FEMALE, optimize for metabolic health and muscle toning without excessive bulk, emphasizing glute/leg development and postural health. If MALE, focus on the V-Taper (Shoulder width / Waist taper).
-    2. AGE-SPECIFIC: If client is 30+, mandate a 10-minute mobility/warm-up for every session and include "Longevity" hacks in the coach advice. If younger, prioritize progressive overload and hypertrophy.
-    3. LIFESTYLE: Account for the ${data.jobType} career. If "Desk", include specific hip flexor and thoracic mobility drills.
-    4. NUTRITION: Include culturally relevant high-protein food options for ${data.culturalPreference} context. Ensure macro splits match the ${data.goal}.`,
+    Specific coaching directives:
+    - If Female, optimize for metabolic health and muscle toning.
+    - If Male, focus on the V-Taper aesthetic.
+    - Include culturally relevant high-protein food options.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -37,22 +34,12 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
         properties: {
           trainingDayMacros: { 
             type: Type.OBJECT, 
-            properties: { 
-              calories: { type: Type.NUMBER }, 
-              p: { type: Type.NUMBER }, 
-              c: { type: Type.NUMBER }, 
-              f: { type: Type.NUMBER } 
-            },
+            properties: { calories: { type: Type.NUMBER }, p: { type: Type.NUMBER }, c: { type: Type.NUMBER }, f: { type: Type.NUMBER } },
             required: ["calories", "p", "c", "f"]
           },
           restDayMacros: { 
             type: Type.OBJECT, 
-            properties: { 
-              calories: { type: Type.NUMBER }, 
-              p: { type: Type.NUMBER }, 
-              c: { type: Type.NUMBER }, 
-              f: { type: Type.NUMBER } 
-            },
+            properties: { calories: { type: Type.NUMBER }, p: { type: Type.NUMBER }, c: { type: Type.NUMBER }, f: { type: Type.NUMBER } },
             required: ["calories", "p", "c", "f"]
           },
           mealPlan: { 
@@ -64,16 +51,7 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
                 name: { type: Type.STRING }, 
                 ingredients: { type: Type.ARRAY, items: { type: Type.STRING } }, 
                 instructions: { type: Type.STRING }, 
-                macros: { 
-                  type: Type.OBJECT,
-                  properties: {
-                    calories: { type: Type.NUMBER },
-                    p: { type: Type.NUMBER },
-                    c: { type: Type.NUMBER },
-                    f: { type: Type.NUMBER }
-                  },
-                  required: ["calories", "p", "c", "f"]
-                },
+                macros: { type: Type.OBJECT, properties: { calories: { type: Type.NUMBER }, p: { type: Type.NUMBER }, c: { type: Type.NUMBER }, f: { type: Type.NUMBER } }, required: ["calories", "p", "c", "f"] },
                 substitutes: { type: Type.ARRAY, items: { type: Type.STRING } }
               },
               required: ["mealType", "name", "ingredients", "instructions", "macros"]
@@ -84,25 +62,8 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
             items: { 
               type: Type.OBJECT, 
               properties: { 
-                id: { type: Type.STRING }, 
-                title: { type: Type.STRING }, 
-                day: { type: Type.STRING },
-                exercises: { 
-                  type: Type.ARRAY, 
-                  items: { 
-                    type: Type.OBJECT,
-                    properties: {
-                      id: { type: Type.STRING },
-                      name: { type: Type.STRING },
-                      sets: { type: Type.NUMBER },
-                      reps: { type: Type.STRING },
-                      targetRpe: { type: Type.NUMBER },
-                      tempo: { type: Type.STRING },
-                      notes: { type: Type.STRING }
-                    },
-                    required: ["id", "name", "sets", "reps"]
-                  } 
-                } 
+                id: { type: Type.STRING }, title: { type: Type.STRING }, day: { type: Type.STRING },
+                exercises: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, name: { type: Type.STRING }, sets: { type: Type.NUMBER }, reps: { type: Type.STRING }, targetRpe: { type: Type.NUMBER }, tempo: { type: Type.STRING }, notes: { type: Type.STRING } }, required: ["id", "name", "sets", "reps"] } }
               },
               required: ["id", "title", "day", "exercises"]
             } 
@@ -114,25 +75,59 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
     }
   });
   
-  const text = response.text;
-  if (!text) throw new Error("AI Protocol Generation Failed");
-  return JSON.parse(text);
+  return JSON.parse(response.text);
+}
+
+export async function analyzeMealPhoto(base64Image: string): Promise<Partial<LoggedFood> | null> {
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: {
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+        { text: "Analyze this meal photo. Identify the food name and estimate Calories, Protein, Carbs, and Fats for the visible portion. Focus on accuracy for South Asian and Global cuisines." }
+      ]
+    },
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          calories: { type: Type.NUMBER },
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fats: { type: Type.NUMBER },
+          servingSize: { type: Type.STRING }
+        },
+        required: ["name", "calories", "protein", "carbs", "fats"]
+      }
+    }
+  });
+
+  try {
+    return JSON.parse(response.text);
+  } catch { return null; }
+}
+
+export async function generateWeeklyAudioBriefing(text: string): Promise<string | null> {
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-preview-tts",
+    contents: [{ parts: [{ text: `Speak in a professional, motivating coach voice for the MUSKYFIT team: ${text}` }] }],
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: {
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
+      },
+    },
+  });
+
+  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
 }
 
 export async function analyzeWeeklyPerformance(name: string, gender: string, age: number, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<WeeklyReview> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Analyze performance for ${name} (${gender}, ${age}y/o).
-    Logs (Last 7 days): ${logs.map(l => `Steps:${l.steps}, Cal:${l.caloriesConsumed}, Trained:${l.workoutCompleted}`).join(' | ')}.
-    Check-in: Energy:${checkIn.energyLevel}, Stress:${checkIn.stressLevel}, Sleep:${checkIn.sleepHours}, Comments:"${checkIn.clientComments}".
-    
-    Output a structured weekly review for the MUSKYFIT Elite Team.
-    Instructions:
-    - If female 30+, prioritize recovery and cortisol management.
-    - If male, focus on strength progress and adherence.
-    - Assign an adherence score (1-100).
-    - Provide 3 punchy directives for next week.
-    - Status can be GREEN (on track), AMBER (needs focus), RED (critical).`,
+    contents: `Analyze performance for ${name} (${gender}, ${age}y/o). Logs: ${logs.length} days. Check-in: Energy:${checkIn.energyLevel}, Stress:${checkIn.stressLevel}.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -141,7 +136,7 @@ export async function analyzeWeeklyPerformance(name: string, gender: string, age
           adherenceScore: { type: Type.NUMBER },
           coachMessage: { type: Type.STRING },
           directives: { type: Type.ARRAY, items: { type: Type.STRING } },
-          status: { type: Type.STRING, description: "GREEN, AMBER, or RED" }
+          status: { type: Type.STRING }
         },
         required: ["adherenceScore", "coachMessage", "directives", "status"]
       }
@@ -149,17 +144,13 @@ export async function analyzeWeeklyPerformance(name: string, gender: string, age
   });
 
   const res = JSON.parse(response.text);
-  return {
-    id: 'rev_' + Date.now(),
-    date: new Date().toISOString().split('T')[0],
-    ...res
-  };
+  return { id: 'rev_' + Date.now(), date: new Date().toISOString().split('T')[0], ...res };
 }
 
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Nutritional data for 100g of ${query}. Provide calories, protein, carbs, and fats.`,
+    contents: `Nutritional data for 100g of ${query}.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -177,36 +168,20 @@ export async function searchUniversalFood(query: string): Promise<FoodItem | nul
     }
   });
   
-  const text = response.text;
-  if (!text) return null;
-  
   try {
-    const res = JSON.parse(text);
+    const res = JSON.parse(response.text);
     return { ...res, id: 'ai_' + Date.now(), type: 'WESTERN' };
-  } catch { 
-    return null; 
-  }
+  } catch { return null; }
 }
 
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `List 3 alternative high-protein meals for: ${meal.name}. Target Macros: ${meal.macros.calories}kcal.`,
+    contents: `3 alternative meals for ${meal.name} with similar macros.`,
     config: {
       responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: { type: Type.STRING }
-      }
+      responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
     }
   });
-  
-  const text = response.text;
-  if (!text) return [];
-  
-  try {
-    return JSON.parse(text);
-  } catch { 
-    return []; 
-  }
+  try { return JSON.parse(response.text); } catch { return []; }
 }
