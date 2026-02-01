@@ -52,67 +52,70 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-40 px-4 animate-in fade-in duration-500">
-      <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-xl flex justify-between items-center">
+      <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Energy Progress</p>
-          <h2 className="text-4xl font-bold text-white italic">{totals.calories} <span className="text-slate-700 text-xl font-normal">/ {targetMacros.calories} kcal</span></h2>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Metabolic Status</p>
+          <h2 className="text-4xl font-bold text-white italic tracking-tighter">{totals.calories} <span className="text-slate-700 text-xl font-normal">/ {targetMacros.calories} kcal</span></h2>
         </div>
         <div className="flex gap-2">
-           <div className="text-center px-4 py-2 bg-slate-950 rounded-xl border border-slate-800">
-              <p className="text-[8px] font-black text-slate-600 uppercase">Protein</p>
-              <p className="text-sm font-bold text-cyan-500">{totals.p}g</p>
+           <div className="text-center px-5 py-3 bg-slate-950 rounded-2xl border border-slate-800 shadow-inner">
+              <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Protein</p>
+              <p className="text-sm font-bold text-cyan-500 italic">{totals.p}g</p>
            </div>
-           <div className="text-center px-4 py-2 bg-slate-950 rounded-xl border border-slate-800">
-              <p className="text-[8px] font-black text-slate-600 uppercase">Carbs</p>
-              <p className="text-sm font-bold text-white">{totals.c}g</p>
+           <div className="text-center px-5 py-3 bg-slate-950 rounded-2xl border border-slate-800 shadow-inner">
+              <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Carbs</p>
+              <p className="text-sm font-bold text-white italic">{totals.c}g</p>
            </div>
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         {(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'] as MealCategory[]).map(cat => (
-          <div key={cat} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+          <div key={cat} className="bg-slate-900/50 p-6 rounded-3xl border border-slate-800 shadow-lg">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">{cat}</h3>
-              <button onClick={() => setCurrentMeal(cat)} className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center text-cyan-500 hover:bg-cyan-600 hover:text-white transition">+</button>
+              <button onClick={() => setCurrentMeal(cat)} className="w-9 h-9 bg-slate-800 rounded-xl flex items-center justify-center text-cyan-500 hover:bg-cyan-600 hover:text-white transition shadow-lg">+</button>
             </div>
             <div className="space-y-2">
               {selectedFoods.filter(f => f.category === cat).map(f => (
-                <div key={f.logId} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex justify-between text-xs font-bold italic">
+                <div key={f.logId} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex justify-between text-xs font-bold italic shadow-sm">
                   <span className="text-slate-300">{f.name}</span>
                   <span className="text-cyan-500">{f.calories} kcal</span>
                 </div>
               ))}
+              {selectedFoods.filter(f => f.category === cat).length === 0 && (
+                <p className="text-[10px] text-slate-700 italic py-2 text-center">Nothing logged</p>
+              )}
             </div>
           </div>
         ))}
       </div>
 
       {currentMeal && (
-        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800">
-            <h3 className="text-xl font-bold text-white mb-6 italic uppercase">Log {currentMeal}</h3>
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 p-8 rounded-[3rem] border border-slate-800 shadow-2xl">
+            <h3 className="text-2xl font-black text-white mb-6 italic uppercase tracking-tighter">Log {currentMeal}</h3>
             <input 
               type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              placeholder="E.g. 200g Grilled Chicken Tandoori..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none mb-4"
+              placeholder="E.g. 200g Lean Lamb Chops..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 text-white outline-none mb-6 focus:border-cyan-500 transition-colors"
             />
-            <div className="flex gap-2">
-               <button onClick={handleAiSearch} disabled={isSearching} className="flex-1 py-4 bg-white text-black font-black uppercase tracking-widest rounded-xl text-xs">{isSearching ? 'Analysing...' : 'Search'}</button>
-               <button onClick={() => fileInputRef.current?.click()} className="flex-1 py-4 bg-slate-800 text-white font-black uppercase tracking-widest rounded-xl text-xs">Photo Log</button>
+            <div className="flex gap-3">
+               <button onClick={handleAiSearch} disabled={isSearching} className="flex-1 py-4 bg-white text-black font-black uppercase tracking-widest rounded-2xl text-[10px] shadow-lg hover:bg-cyan-500 hover:text-white transition-all">{isSearching ? 'Analysing...' : 'AI Search'}</button>
+               <button onClick={() => fileInputRef.current?.click()} className="flex-1 py-4 bg-slate-800 text-white font-black uppercase tracking-widest rounded-2xl text-[10px] shadow-lg hover:border-cyan-500 transition-all">Photo Scan</button>
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-            <button onClick={() => setCurrentMeal(null)} className="w-full mt-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Cancel</button>
+            <button onClick={() => setCurrentMeal(null)} className="w-full mt-6 text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] hover:text-white transition">Cancel</button>
           </div>
         </div>
       )}
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-xs px-4">
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs px-4">
          <button 
            onClick={() => onSave({ date: new Date().toISOString(), steps: 10000, caloriesConsumed: totals.calories, proteinConsumed: totals.p, carbsConsumed: totals.c, fatsConsumed: totals.f, workoutCompleted: false, foods: selectedFoods })}
-           className="w-full py-4 bg-cyan-600 text-white font-black uppercase tracking-widest rounded-xl shadow-2xl hover:bg-cyan-500 transition"
+           className="w-full py-5 bg-cyan-600 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-[0_20px_40px_rgba(6,182,212,0.3)] hover:bg-cyan-500 transition-all italic text-xs"
          >
-           Commit Daily Diary
+           Save Daily Protocol
          </button>
       </div>
     </div>
