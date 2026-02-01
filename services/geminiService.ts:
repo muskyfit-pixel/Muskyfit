@@ -17,7 +17,7 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
     contents: `You are a world-class fitness coach for Asian professionals living in the UK. 
-    Create a simple 12-week training and eating plan for:
+    Create a clear 12-week training and nutrition plan for:
     Name: ${data.name}
     Gender: ${data.gender}
     Main Goal: ${data.goal}
@@ -25,12 +25,13 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
     Cultural Background: ${data.culturalPreference}
     Current Weight: ${data.weight}kg, Height: ${data.height}cm
     
-    IMPORTANT REQUIREMENTS:
-    - Use UK English spelling (Programme, Colour, Analysing).
-    - If FEMALE: Focus on tone, strength, and health. No "bulking" language.
+    UK REQUIREMENTS:
+    - Use UK English (Programme, Analysing, Colour).
+    - If FEMALE: Focus on tone, strength, and health.
     - If MALE: Focus on athletic shape and strength.
-    - NUTRITION: Suggest foods available in UK supermarkets (e.g., Tesco, Waitrose). Include healthy Asian staples (Lentils, Tofu, Paneer, Grilled Meats).
-    - Keep instructions simple and jargon-free.
+    - NUTRITION: Suggest foods easily found in UK supermarkets like Tesco, Sainsbury's, or Waitrose. 
+    - Include healthy British Asian staples (Daal, Grilled Chicken, Paneer, Tofu, Lean Lamb).
+    - Keep instructions plain and easy to follow. No complex jargon.
     
     Return a JSON object with trainingDayMacros (calories, p, c, f), restDayMacros, mealPlan (array of meals with name, ingredients, instructions), workoutSplit (array of days with exercises), and coachAdvice.`,
     config: {
@@ -47,30 +48,17 @@ export async function groundedConciergeChat(prompt: string, context: string): Pr
     contents: `Context: ${context}\n\nClient Question: ${prompt}`,
     config: {
       tools: [{ googleSearch: {} }],
-      systemInstruction: "You are the MUSKYFIT support coach. Use UK English. Be helpful, clear, and direct. Help the client with their training or diet."
+      systemInstruction: "You are the MUSKYFIT support coach. Use UK English. Be clear, direct, and helpful. Focus on UK-based food and training advice."
     },
   });
   return { text: response.text || "Checking that for you...", sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
-}
-
-export async function getMealAlternatives(meal: Meal): Promise<string[]> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Suggest 3 simple UK Asian-friendly alternatives for: ${meal.name} with similar nutrition.`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
-    }
-  });
-  return parseGeminiJson(response.text) || [];
 }
 
 export async function analyzeWeeklyPerformanceDeep(logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<any> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
-    contents: `Review this client's week: Logs: ${JSON.stringify(logs)}, Check-in: ${JSON.stringify(checkIn)}. Keep the feedback simple and encouraging. Use UK English.`,
+    contents: `Review this client's week in the UK: Logs: ${JSON.stringify(logs)}, Check-in: ${JSON.stringify(checkIn)}. Provide a simple review.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -92,7 +80,7 @@ export async function generateExerciseDemoVideo(exerciseName: string): Promise<s
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   let operation = await ai.models.generateVideos({
     model: 'veo-3.1-fast-generate-preview',
-    prompt: `Professional video demonstration of a fitness expert performing: ${exerciseName}. Plain background, clear form.`,
+    prompt: `Professional video of an athlete demonstrating: ${exerciseName}. Clear form, well lit.`,
     config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '9:16' }
   });
   while (!operation.done) {
@@ -103,34 +91,93 @@ export async function generateExerciseDemoVideo(exerciseName: string): Promise<s
   return link ? `${link}&key=${process.env.API_KEY}` : null;
 }
 
-export async function generateWeeklyAudioBriefing(text: string): Promise<string | undefined> {
+// Fixed missing function: generateGoalVisualization using high-quality image model
+export async function generateGoalVisualization(goal: string, biometrics: string): Promise<string | null> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-image-preview',
+    contents: {
+      parts: [{ text: `High-quality aesthetic fitness goal visualization for: ${goal}. Based on metabolic profile: ${biometrics}. Cinematic gym lighting, realistic athletic physique.` }]
+    },
+    config: {
+      imageConfig: {
+        aspectRatio: "3:4",
+        imageSize: "1K"
+      }
+    }
+  });
+  
+  for (const part of response.candidates?.[0]?.content?.parts || []) {
+    if (part.inlineData) {
+      return `data:image/png;base64,${part.inlineData.data}`;
+    }
+  }
+  return null;
+}
+
+// Fixed missing function: connectLiveCoach for real-time audio interaction
+export async function connectLiveCoach(callbacks: any): Promise<any> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return ai.live.connect({
+    model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+    callbacks,
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: {
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
+      },
+      systemInstruction: "You are the MuskyFit Elite Coach. Motivate the client and answer training questions concisely using UK English."
+    }
+  });
+}
+
+// Fixed missing function: generateWeeklyAudioBriefing using TTS model
+export async function generateWeeklyAudioBriefing(text: string): Promise<string | null> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
     contents: [{ parts: [{ text }] }],
     config: {
       responseModalities: [Modality.AUDIO],
-      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+      speechConfig: {
+        voiceConfig: {
+          prebuiltVoiceConfig: { voiceName: 'Kore' },
+        },
+      },
     },
   });
-  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
 }
 
-// Fix: analyzeMealPhoto for nutritional extraction from images
+// Fixed missing function: findEliteResources using Maps Grounding
+export async function findEliteResources(query: string, latitude: number, longitude: number): Promise<{ text: string, sources: any[] }> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Find elite fitness resources near me: ${query}`,
+    config: {
+      tools: [{ googleMaps: {} }],
+      toolConfig: {
+        retrievalConfig: {
+          latLng: { latitude, longitude }
+        }
+      }
+    },
+  });
+  return {
+    text: response.text || "Scanning local area...",
+    sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
+  };
+}
+
 export async function analyzeMealPhoto(base64: string): Promise<any> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const imagePart = {
-    inlineData: {
-      mimeType: 'image/jpeg',
-      data: base64,
-    },
-  };
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: {
       parts: [
-        imagePart,
-        { text: 'Estimate the nutritional content of the meal in this image. Focus on UK portion sizes. Return JSON.' }
+        { inlineData: { mimeType: 'image/jpeg', data: base64 } },
+        { text: 'Estimate calories and protein for this meal using UK portion sizes. Return JSON.' }
       ]
     },
     config: {
@@ -144,57 +191,34 @@ export async function analyzeMealPhoto(base64: string): Promise<any> {
           carbs: { type: Type.NUMBER },
           fats: { type: Type.NUMBER },
           servingSize: { type: Type.STRING }
-        },
-        required: ["name", "calories", "protein", "carbs", "fats", "servingSize"]
+        }
       }
     }
   });
   return parseGeminiJson(response.text);
 }
 
-// Fix: generateGoalVisualization for high-quality image generation
-export async function generateGoalVisualization(prompt: string, context: string): Promise<string | null> {
+export async function searchUniversalFood(query: string): Promise<any> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-image-preview',
-    contents: {
-      parts: [{ text: `High-quality, realistic fitness transformation vision: ${prompt}. User Context: ${context}. Cinematic lighting, professional bodybuilding aesthetic.` }],
-    },
-    config: {
-      imageConfig: { aspectRatio: "3:4", imageSize: "1K" }
-    }
-  });
-  
-  for (const part of response.candidates[0].content.parts) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
-    }
-  }
-  return null;
-}
-
-// Fix: findEliteResources using Maps Grounding with Gemini 2.5
-export async function findEliteResources(query: string, latitude: number, longitude: number): Promise<any> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: `Find elite fitness or nutrition resources for: ${query}. Focus on locations near the user.`,
-    config: {
-      tools: [{ googleMaps: {} }],
-      toolConfig: {
-        retrievalConfig: {
-          latLng: {
-            latitude: latitude,
-            longitude: longitude
-          }
+    model: "gemini-3-flash-preview",
+    contents: `Nutrition info for: ${query}. Use UK values.`,
+    config: { 
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          calories: { type: Type.NUMBER },
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fats: { type: Type.NUMBER },
+          servingSize: { type: Type.STRING }
         }
       }
-    },
+    }
   });
-  return { 
-    text: response.text || "Scanning local area...", 
-    sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
-  };
+  return parseGeminiJson(response.text);
 }
 
 export function encodePCM(data: Float32Array): string {
@@ -225,30 +249,4 @@ export async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampl
     }
   }
   return buffer;
-}
-
-export async function connectLiveCoach(callbacks: any) {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  return ai.live.connect({
-    model: 'gemini-2.5-flash-native-audio-preview-12-2025',
-    callbacks,
-    config: {
-      responseModalities: [Modality.AUDIO],
-      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-      systemInstruction: "You are the MUSKYFIT coach. Speak in UK English. Be clear, professional, and encouraging."
-    }
-  });
-}
-
-export async function searchUniversalFood(query: string): Promise<any> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Nutrition for: ${query}`,
-    config: { 
-      responseMimeType: "application/json", 
-      responseSchema: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, calories: { type: Type.NUMBER }, protein: { type: Type.NUMBER }, carbs: { type: Type.NUMBER }, fats: { type: Type.NUMBER }, servingSize: { type: Type.STRING } } } 
-    }
-  });
-  return parseGeminiJson(response.text);
 }
