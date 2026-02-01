@@ -1,203 +1,175 @@
-import React, { useState, useEffect } from 'react';
-import Navigation from './components/Navigation';
-import IntakeForm from './components/IntakeForm';
-import PlanDisplay from './components/PlanDisplay';
-import CoachDashboard from './components/CoachDashboard';
-import DailyLogging from './components/DailyLogging';
-import WorkoutTracker from './components/WorkoutTracker';
-import WeeklyCheckInForm from './components/WeeklyCheckInForm';
-import ReadinessHUD from './components/ReadinessHUD';
-import MuskyFitSupport from './components/MuskyFitSupport';
-import TransformationHub from './components/TransformationHub';
-import MuskyFitVault from './components/MuskyFitVault';
-import WeeklyReviewView from './components/WeeklyReviewView';
-import StrengthMatrix from './components/StrengthMatrix';
-import ResourceRadar from './components/ResourceRadar';
-import { generatePersonalizedPlan } from './services/geminiService';
-import { MOCK_CLIENTS } from './constants';
-import { Client, IntakeData, DailyLog, WeeklyCheckIn, ProgressPhoto, ExerciseLog } from './types';
 
-const App = () => {
-  const [role, setRole] = useState<'COACH' | 'CLIENT'>('CLIENT');
-  const [activeTab, setActiveTab] = useState('client-dashboard');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const [clients, setClients] = useState<Client[]>(() => {
-    const saved = localStorage.getItem('muskyfit_clients_v2');
-    return saved ? JSON.parse(saved) : MOCK_CLIENTS;
-  });
-  
-  const [currentClientId, setCurrentClientId] = useState<string | null>(() => {
-    return localStorage.getItem('muskyfit_active_client_v2') || (clients.length > 0 ? clients[0].id : null);
-  });
+import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { IntakeData, DailyLog, WeeklyCheckIn, LoggedFood } from "../types";
 
-  useEffect(() => {
-    localStorage.setItem('muskyfit_clients_v2', JSON.stringify(clients));
-  }, [clients]);
-
-  useEffect(() => {
-    if (currentClientId) {
-      localStorage.setItem('muskyfit_active_client_v2', currentClientId);
-    }
-  }, [currentClientId]);
-
-  const currentClient = clients.find(c => c.id === currentClientId) || null;
-
-  const handleIntakeSubmit = async (data: IntakeData) => {
-    setIsLoading(true);
-    const newId = 'c_' + Date.now();
-    const newClient: Client = {
-      id: newId,
-      profile: { id: 'u_' + newId, name: data.name, role: 'CLIENT', avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${data.name}` },
-      intake: data,
-      planStatus: 'CONSULTATION_SUBMITTED',
-      currentWorkoutIndex: 0,
-      exerciseProgress: {},
-      personalBests: [],
-      logs: [],
-      checkIns: [],
-      photos: [],
-      performanceStatus: 'ON_TRACK'
-    };
-    setClients(prev => [...prev, newClient]);
-    setCurrentClientId(newId);
-    setIsLoading(false);
-  };
-
-  const handleFinalisePlan = async (clientId: string) => {
-    setIsLoading(true);
-    try {
-      const client = clients.find(c => c.id === clientId);
-      if (client?.intake) {
-        const plan = await generatePersonalizedPlan(client.intake);
-        if (plan) {
-          setClients(prev => prev.map(c => c.id === clientId ? { ...c, plan, planStatus: 'PLAN_READY' } : c));
-        }
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateClientData = (clientId: string, updates: Partial<Client>) => {
-    setClients(prev => prev.map(c => c.id === clientId ? { ...c, ...updates } : c));
-  };
-
-  const renderContent = () => {
-    if (role === 'COACH') {
-      return (
-        <CoachDashboard 
-          clients={clients} 
-          pendingClient={clients.find(c => c.planStatus === 'CONSULTATION_SUBMITTED') || null} 
-          onFinalise={handleFinalisePlan}
-          /* Fix: Properly wrap WeeklyReview into a WeeklyCheckIn object to satisfy the Client type requirement */
-          onSendReview={(id, rev) => setClients(prev => prev.map(c => c.id === id ? {
-            ...c, 
-            checkIns: [
-              {
-                date: rev.date,
-                energyLevel: 5,
-                stressLevel: 5,
-                sleepHours: 8,
-                digestionStatus: 'Good',
-                clientComments: 'Coach review and feedback',
-                review: rev
-              },
-              ...c.checkIns
-            ]
-          } : c))}
-          isLoading={isLoading} 
-        />
-      );
-    }
-    
-    if (!currentClient || currentClient.planStatus === 'NONE') {
-      return <IntakeForm onSubmit={handleIntakeSubmit} isLoading={isLoading} />;
-    }
-
-    if (currentClient.planStatus === 'CONSULTATION_SUBMITTED') {
-      return (
-        <div className="max-w-2xl mx-auto text-center py-20 px-6 bg-slate-900/50 rounded-3xl border border-slate-800">
-          <div className="text-5xl mb-6">⏳</div>
-          <h2 className="text-3xl font-bold text-white mb-4">Application Under Review</h2>
-          <p className="text-slate-400 mb-8">Hi {currentClient.profile.name}. Coach is analysing your metabolic data to build your bespoke 12-week V-Taper programme. Check back shortly.</p>
-          <button onClick={() => setRole('COACH')} className="bg-white text-black px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest">Enter Coach View (Admin)</button>
-        </div>
-      );
-    }
-
-    switch (activeTab) {
-      case 'log': return <DailyLogging onSave={(log) => updateClientData(currentClient.id, { logs: [log, ...currentClient.logs] })} targetMacros={currentClient.plan?.trainingDayMacros} />;
-      case 'workout': return currentClient.plan ? <WorkoutTracker currentWorkout={currentClient.plan.workoutSplit[currentClient.currentWorkoutIndex]} previousProgress={currentClient.exerciseProgress} onFinish={(logs) => { setActiveTab('client-dashboard'); updateClientData(currentClient.id, { currentWorkoutIndex: (currentClient.currentWorkoutIndex + 1) % currentClient.plan!.workoutSplit.length }); }} /> : null;
-      case 'check-in': return <WeeklyCheckInForm onSubmit={(ci) => updateClientData(currentClient.id, { checkIns: [ci, ...currentClient.checkIns] })} />;
-      case 'concierge': return <MuskyFitSupport client={currentClient} />;
-      case 'plans': return currentClient.plan ? <PlanDisplay mealPlan={currentClient.plan.mealPlan} workoutSplit={currentClient.plan.workoutSplit} trainingDayMacros={currentClient.plan.trainingDayMacros} /> : null;
-      case 'vault': return <MuskyFitVault />;
-      case 'transformation': return <TransformationHub photos={currentClient.photos} onUpload={(p) => updateClientData(currentClient.id, { photos: [p, ...currentClient.photos] })} biometrics={`${currentClient.intake?.weight}kg, ${currentClient.intake?.height}cm`} />;
-      case 'reviews': return <WeeklyReviewView reviews={currentClient.checkIns.filter(ci => ci.review).map(ci => ci.review!)} />;
-      case 'strength': return <StrengthMatrix pbs={currentClient.personalBests} />;
-      case 'radar': return <ResourceRadar />;
-      default: 
-        return (
-          <div className="space-y-6 pb-20 animate-in fade-in duration-500">
-            <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Hi, {currentClient.profile.name}</h2>
-                <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Client Protocol Active</p>
-              </div>
-              <div className="px-4 py-1 bg-cyan-600/10 text-cyan-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-cyan-500/20">Elite Tier</div>
-            </div>
-
-            <ReadinessHUD score={92} sleep={7.5} stress="Low" />
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 flex flex-col justify-between group hover:border-cyan-500 transition-all cursor-pointer" onClick={() => setActiveTab('workout')}>
-                 <div>
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Next Session</h3>
-                    <p className="text-xl font-bold text-white mb-6 italic uppercase">{currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex]?.title || 'Rest Day'}</p>
-                 </div>
-                 <button className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-xl text-xs group-hover:bg-cyan-500 group-hover:text-white transition">Start Training</button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                 <button onClick={() => setActiveTab('log')} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition">
-                    <span className="text-xl mb-1 block">🥗</span>
-                    <p className="text-[9px] font-black text-white uppercase tracking-widest">Food Diary</p>
-                 </button>
-                 <button onClick={() => setActiveTab('plans')} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition">
-                    <span className="text-xl mb-1 block">📋</span>
-                    <p className="text-[9px] font-black text-white uppercase tracking-widest">My Plan</p>
-                 </button>
-                 <button onClick={() => setActiveTab('concierge')} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition">
-                    <span className="text-xl mb-1 block">💬</span>
-                    <p className="text-[9px] font-black text-white uppercase tracking-widest">Concierge</p>
-                 </button>
-                 <button onClick={() => setActiveTab('check-in')} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition">
-                    <span className="text-xl mb-1 block">📅</span>
-                    <p className="text-[9px] font-black text-white uppercase tracking-widest">Check-In</p>
-                 </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-               <button onClick={() => setActiveTab('vault')} className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[9px] font-bold text-slate-500 hover:text-white uppercase transition tracking-widest">The Vault</button>
-               <button onClick={() => setActiveTab('transformation')} className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[9px] font-bold text-slate-500 hover:text-white uppercase transition tracking-widest">Progress</button>
-               <button onClick={() => setActiveTab('strength')} className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[9px] font-bold text-slate-500 hover:text-white uppercase transition tracking-widest">Strength</button>
-               <button onClick={() => setActiveTab('radar')} className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[9px] font-bold text-slate-500 hover:text-white uppercase transition tracking-widest">Radar</button>
-            </div>
-          </div>
-        );
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 font-sans selection:bg-cyan-500/30">
-      <Navigation role={role} setRole={setRole} activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="max-w-4xl mx-auto py-6 px-4">
-        {renderContent()}
-      </main>
-    </div>
-  );
+const parseGeminiJson = (text: string) => {
+  try {
+    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error("JSON Parsing Error:", e);
+    return null;
+  }
 };
 
-export default App;
+export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: "gemini-3-pro-preview",
+    contents: `You are an elite fitness coach for Asian men in the UK. 
+    Create a bespoke 12-week V-Taper programme for: ${data.name}, Goal: ${data.goal}, Diet: ${data.dietPreference}.
+    Requirements:
+    - Use UK English.
+    - Focus on high-protein, calorie-controlled versions of Asian staples.
+    - Include specific weight targets for main lifts based on current weight.
+    - Return JSON with: trainingDayMacros, restDayMacros, mealPlan (array), workoutSplit (array), coachAdvice.`,
+    config: { 
+      responseMimeType: "application/json"
+    }
+  });
+  return parseGeminiJson(response.text);
+}
+
+export async function groundedConciergeChat(prompt: string, context: string): Promise<{ text: string, sources: any[] }> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `Context: ${context}\n\nClient Query: ${prompt}`,
+    config: {
+      tools: [{ googleSearch: {} }],
+      systemInstruction: "You are the MUSKYFIT Elite Coach. You specialize in the Asian male physiology and UK lifestyle. Be direct, motivating, and professional."
+    },
+  });
+  return { 
+    text: response.text || "", 
+    sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
+  };
+}
+
+export async function searchUniversalFood(query: string): Promise<any> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `Provide nutrition data for: ${query}. Use UK database values.`,
+    config: { 
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          calories: { type: Type.NUMBER },
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fats: { type: Type.NUMBER },
+          servingSize: { type: Type.STRING }
+        },
+        required: ["name", "calories", "protein", "carbs", "fats", "servingSize"]
+      }
+    }
+  });
+  return parseGeminiJson(response.text);
+}
+
+export async function generateGoalVisualization(goal: string, bio: string): Promise<string | null> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-image-preview',
+    contents: { parts: [{ text: `High-quality aesthetic fitness visualization of a professional Asian male achieving: ${goal}. Setting: High-end UK gym environment, moody lighting, elite aesthetic. No faces, focus on physique silhouette and V-taper.` }] },
+    config: { imageConfig: { aspectRatio: "3:4", imageSize: "1K" } }
+  });
+  const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+  return part ? `data:image/png;base64,${part.inlineData.data}` : null;
+}
+
+export async function analyzeMealPhoto(base64: string): Promise<any> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: { 
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: base64 } }, 
+        { text: 'Analyze this meal. Provide nutrition for the whole plate in JSON format with name, calories, protein, carbs, and fats.' }
+      ] 
+    },
+    config: { responseMimeType: "application/json" }
+  });
+  return parseGeminiJson(response.text);
+}
+
+export function encodePCM(data: Float32Array): string {
+  const l = data.length;
+  const int16 = new Int16Array(l);
+  for (let i = 0; i < l; i++) { 
+    int16[i] = Math.max(-1, Math.min(1, data[i])) * 32767; 
+  }
+  let binary = '';
+  const bytes = new Uint8Array(int16.buffer);
+  for (let i = 0; i < bytes.byteLength; i++) { 
+    binary += String.fromCharCode(bytes[i]); 
+  }
+  return btoa(binary);
+}
+
+export function decodeBase64(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) { 
+    bytes[i] = binaryString.charCodeAt(i); 
+  }
+  return bytes;
+}
+
+export async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
+export async function connectLiveCoach(callbacks: any): Promise<any> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return ai.live.connect({
+    model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+    callbacks,
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
+      systemInstruction: "You are the MuskyFit Head Coach. You are speaking with an Asian male professional in the UK. Provide concise, high-intensity training cues and nutritional advice. Use British terminology."
+    }
+  });
+}
+
+export async function generateWeeklyAudioBriefing(text: string): Promise<string | null> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-preview-tts",
+    contents: [{ parts: [{ text }] }],
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
+    },
+  });
+  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+}
+
+export async function findEliteResources(query: string, lat: number, lng: number): Promise<{ text: string, sources: any[] }> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Find local elite fitness/nutrition resources for: ${query}. User is near coordinates ${lat}, ${lng}.`,
+    config: {
+      tools: [{ googleMaps: {} }],
+      toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } }
+    },
+  });
+  return { 
+    text: response.text || "", 
+    sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
+  };
+}
