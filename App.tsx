@@ -25,21 +25,21 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const [clients, setClients] = useState<Client[]>(() => {
-    const saved = localStorage.getItem('muskyfit_clients_v5');
+    const saved = localStorage.getItem('muskyfit_clients_v3');
     return saved ? JSON.parse(saved) : MOCK_CLIENTS;
   });
   
   const [currentClientId, setCurrentClientId] = useState<string | null>(() => {
-    return localStorage.getItem('muskyfit_active_client_v5') || (clients.length > 0 ? clients[0].id : null);
+    return localStorage.getItem('muskyfit_active_client_v3') || (clients.length > 0 ? clients[0].id : null);
   });
 
   useEffect(() => {
-    localStorage.setItem('muskyfit_clients_v5', JSON.stringify(clients));
+    localStorage.setItem('muskyfit_clients_v3', JSON.stringify(clients));
   }, [clients]);
 
   useEffect(() => {
     if (currentClientId) {
-      localStorage.setItem('muskyfit_active_client_v5', currentClientId);
+      localStorage.setItem('muskyfit_active_client_v3', currentClientId);
     }
   }, [currentClientId]);
 
@@ -83,7 +83,7 @@ const App = () => {
       }
     } catch (e) {
       console.error(e);
-      alert("Plan Generation Failed.");
+      alert("Plan Generation Failed. Check Console.");
     } finally {
       setIsLoading(false);
     }
@@ -114,8 +114,8 @@ const App = () => {
       return (
         <div className="max-w-2xl mx-auto text-center py-24 px-6 bg-slate-900/40 rounded-[3rem] border border-slate-800 backdrop-blur-sm shadow-2xl animate-pulse">
           <div className="text-6xl mb-8">🧬</div>
-          <h2 className="text-4xl font-black text-white mb-4 italic uppercase tracking-tighter">Analysing Phenotype</h2>
-          <p className="text-slate-400 mb-10 max-w-md mx-auto italic">Your bespoke V-Taper protocol is being engineered. Switch to COACH VIEW to publish it.</p>
+          <h2 className="text-4xl font-black text-white mb-4 italic uppercase tracking-tighter">Analysing Protocol</h2>
+          <p className="text-slate-400 mb-10 max-w-md mx-auto italic">Your bespoke transformation protocol is being engineered. Switch to COACH VIEW to publish it.</p>
           <button onClick={() => setRole('COACH')} className="bg-cyan-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-cyan-500 transition shadow-xl">Coach Command Center</button>
         </div>
       );
@@ -129,7 +129,7 @@ const App = () => {
       case 'plans': 
         return currentClient.plan ? <PlanDisplay mealPlan={currentClient.plan.mealPlan} workoutSplit={currentClient.plan.workoutSplit} trainingDayMacros={currentClient.plan.trainingDayMacros} /> : null;
       case 'concierge': return <MuskyFitSupport client={currentClient} />;
-      case 'transformation': return <TransformationHub photos={currentClient.photos} onUpload={(p) => updateClientData(currentClient.id, { photos: [p, ...currentClient.photos] })} biometrics={`${currentClient.intake?.weight}kg, ${currentClient.intake?.height}cm`} />;
+      case 'transformation': return <TransformationHub photos={currentClient.photos} onUpload={(p) => updateClientData(currentClient.id, { photos: [p, ...currentClient.photos] })} biometrics={`${currentClient.intake?.weight}kg, ${currentClient.intake?.height}cm`} gender={currentClient.intake?.gender} dob={currentClient.intake?.dob} />;
       case 'vault': return <MuskyFitVault />;
       case 'check-in': return <WeeklyCheckInForm onSubmit={(ci) => updateClientData(currentClient.id, { checkIns: [ci, ...currentClient.checkIns] })} />;
       case 'reviews': return <WeeklyReviewView reviews={currentClient.checkIns.filter(ci => ci.review).map(ci => ci.review!)} />;
@@ -151,7 +151,7 @@ const App = () => {
             <ClientProgressSummary logs={currentClient.logs} />
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 flex flex-col justify-between group hover:border-cyan-500 transition-all cursor-pointer shadow-2xl relative overflow-hidden" onClick={() => setActiveTab('workout')}>
-                 <div className="absolute top-0 right-0 p-8 opacity-5 text-6xl font-black italic uppercase select-none">Lift</div>
+                 <div className="absolute top-0 right-0 p-8 opacity-5 text-6xl font-black italic uppercase select-none">Train</div>
                  <h3 className="text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest italic">Next Session</h3>
                  <p className="text-2xl font-black text-white mb-8 italic uppercase tracking-tight">{currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex]?.title || 'Rest Day'}</p>
                  <button className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl text-[10px] shadow-lg">Execute Session</button>
