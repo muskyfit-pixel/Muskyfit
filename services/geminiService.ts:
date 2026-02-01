@@ -78,6 +78,36 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
   return JSON.parse(response.text);
 }
 
+export async function groundedConciergeChat(prompt: string, context: string): Promise<{ text: string, sources: any[] }> {
+  const response = await ai.models.generateContent({
+    model: "gemini-3-pro-preview",
+    contents: `Context: ${context}\n\nUser Question: ${prompt}`,
+    config: {
+      tools: [{ googleSearch: {} }],
+      systemInstruction: "You are the MUSKYFIT AI CONCIERGE. Answer health and nutrition questions with elite precision. Use Google Search to verify the latest science or find specific items."
+    },
+  });
+
+  const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  return { text: response.text || "Thinking...", sources };
+}
+
+export async function findEliteResources(query: string, lat: number, lng: number): Promise<{ text: string, sources: any[] }> {
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Find ${query} nearby. Focus on locations suitable for high-performance athletes or Asian professionals looking for healthy groceries or elite gyms.`,
+    config: {
+      tools: [{ googleMaps: {} }, { googleSearch: {} }],
+      toolConfig: {
+        retrievalConfig: { latLng: { latitude: lat, longitude: lng } }
+      }
+    },
+  });
+
+  const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  return { text: response.text || "Locating resources...", sources };
+}
+
 export async function analyzeMealPhoto(base64Image: string): Promise<Partial<LoggedFood> | null> {
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
