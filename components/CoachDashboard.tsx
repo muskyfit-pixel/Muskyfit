@@ -14,7 +14,7 @@ interface CoachDashboardProps {
 const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient, onFinalise, onSendReview, isLoading }) => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'OVERVIEW' | 'DEEP_DIVE'>('OVERVIEW');
-  const [generatedReview, setGeneratedReview] = useState<WeeklyReview | null>(null);
+  const [generatedReview, setGeneratedReview] = useState<(WeeklyReview & { sentiment: string }) | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
@@ -39,6 +39,15 @@ const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient,
       console.error(e);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const getSentimentColor = (s: string) => {
+    switch (s) {
+      case 'MOTIVATED': return 'text-green-400 bg-green-400/10';
+      case 'BURNT_OUT': return 'text-red-400 bg-red-400/10';
+      case 'FRUSTRATED': return 'text-amber-400 bg-amber-400/10';
+      default: return 'text-slate-400 bg-slate-400/10';
     }
   };
 
@@ -151,9 +160,14 @@ const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient,
                             <p className="text-[8px] font-black text-cyan-500 uppercase tracking-widest">Adherence Score</p>
                             <p className="text-4xl font-black text-white italic">{generatedReview.adherenceScore}%</p>
                           </div>
-                          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${generatedReview.status === 'GREEN' ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
-                            Status: {generatedReview.status}
-                          </span>
+                          <div className="text-right flex flex-col items-end gap-2">
+                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${generatedReview.status === 'GREEN' ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
+                              {generatedReview.status}
+                            </span>
+                            <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.2em] ${getSentimentColor(generatedReview.sentiment)}`}>
+                              Vibe: {generatedReview.sentiment.replace('_', ' ')}
+                            </span>
+                          </div>
                         </div>
                         <p className="text-sm text-slate-300 italic leading-relaxed mb-8">"{generatedReview.coachMessage}"</p>
                         <div className="grid md:grid-cols-3 gap-4">
