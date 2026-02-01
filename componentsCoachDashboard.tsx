@@ -107,7 +107,7 @@ const CoachDashboard: React.FC<CoachDashboardProps> = ({ clients, pendingClient,
                   <div className="space-y-4">
                      {selectedClient.logs[0]?.rituals ? Object.entries(selectedClient.logs[0].rituals).map(([habit, val]) => (
                         <div key={habit} className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                           <span>{habit.replace(/([A-Z])/g, ' $1')}</span>
+                           <span className="capitalize">{habit.replace(/([A-Z])/g, ' $1')}</span>
                            <span className={val ? 'text-green-500' : 'text-red-500'}>{val ? 'DONE' : 'MISSED'}</span>
                         </div>
                      )) : <p className="text-xs italic text-slate-600">No ritual data logged for today.</p>}
