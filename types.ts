@@ -13,6 +13,13 @@ export interface UserProfile {
   phone?: string;
 }
 
+export interface PersonalBest {
+  exercise: string;
+  weight: number;
+  date: string;
+  history: { weight: number, date: string }[];
+}
+
 export interface WeeklyReview {
   id: string;
   date: string;
@@ -50,7 +57,7 @@ export interface VaultArticle {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'model';
+  role: 'user' | 'model' | 'coach';
   text: string;
   timestamp: number;
 }
@@ -182,6 +189,7 @@ export interface Client {
   planStatus: PlanStatus;
   currentWorkoutIndex: number;
   exerciseProgress: Record<string, number>;
+  personalBests: PersonalBest[];
   plan?: {
     trainingDayMacros: MacroSplit;
     restDayMacros: MacroSplit;
