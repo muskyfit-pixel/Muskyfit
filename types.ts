@@ -2,6 +2,7 @@
 export type UserRole = 'COACH' | 'CLIENT';
 export type PlanStatus = 'NONE' | 'CONSULTATION_SUBMITTED' | 'PLAN_READY';
 export type MealCategory = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACKS';
+export type Gender = 'MALE' | 'FEMALE' | 'NON_BINARY' | 'PREFER_NOT_TO_SAY';
 
 export interface UserProfile {
   id: string;
@@ -33,7 +34,7 @@ export interface ProgressPhoto {
 export interface VaultArticle {
   id: string;
   title: string;
-  category: 'NUTRITION' | 'TRAINING' | 'MINDSET' | 'BIO-HACKING';
+  category: 'NUTRITION' | 'TRAINING' | 'MINDSET' | 'BIO-HACKING' | 'LONGEVITY';
   summary: string;
   icon: string;
 }
@@ -50,7 +51,7 @@ export interface IntakeData {
   email: string;
   phone: string;
   dob: string;
-  gender: string;
+  gender: Gender;
   weight: number; 
   height: number;
   heartCondition: boolean;
@@ -68,7 +69,7 @@ export interface IntakeData {
   sleepQuality: 'Poor' | 'Average' | 'Good';
   stressLevel: 'Low' | 'Moderate' | 'High';
   trainingDaysPerWeek: number;
-  goal: 'FAT_LOSS' | 'MUSCLE_GAIN' | 'STRENGTH' | 'ATHLETIC_PERFORMANCE';
+  goal: 'FAT_LOSS' | 'MUSCLE_GAIN' | 'STRENGTH' | 'ATHLETIC_PERFORMANCE' | 'LONGEVITY_HEALTH';
   dietPreference: 'NON_VEG' | 'VEGETARIAN' | 'VEGAN' | 'PESCATARIAN';
   culturalPreference: 'INDIAN' | 'WESTERN' | 'MIXED';
   religiousExclusions: string; 
