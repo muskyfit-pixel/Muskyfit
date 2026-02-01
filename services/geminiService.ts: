@@ -5,9 +5,13 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
   const response = await ai.models.generateContent({
-    // Use gemini-3-pro-preview for complex reasoning task (plan generation)
     model: "gemini-3-pro-preview",
-    contents: `Build a 12-week protocol for ${data.name}. Focus: Asian Male Professional. Goal: ${data.goal}. Preference: ${data.culturalPreference}. Include a meal plan with specific ingredients and instructions, plus a workout split.`,
+    contents: `Build a 12-week protocol for ${data.name}. 
+    Biometrics: ${data.weight}kg, ${data.height}cm. 
+    Niche: Asian Male Professional. Goal: ${data.goal}. 
+    Preference: ${data.culturalPreference} (${data.dietPreference}).
+    Religious/Cultural Exclusions: ${data.religiousExclusions}.
+    Include macro-equivalent meal alternatives in 'substitutes' and high-performance coach advice.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -60,6 +64,7 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
               properties: { 
                 id: { type: Type.STRING }, 
                 title: { type: Type.STRING }, 
+                day: { type: Type.STRING },
                 exercises: { 
                   type: Type.ARRAY, 
                   items: { 
@@ -71,7 +76,8 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
                       reps: { type: Type.STRING },
                       targetRpe: { type: Type.NUMBER },
                       tempo: { type: Type.STRING },
-                      notes: { type: Type.STRING }
+                      notes: { type: Type.STRING },
+                      isWarmup: { type: Type.BOOLEAN }
                     }
                   } 
                 } 
@@ -88,7 +94,6 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
 
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
   const response = await ai.models.generateContent({
-    // Use gemini-3-flash-preview for basic data retrieval tasks
     model: "gemini-3-flash-preview",
     contents: `Nutritional values for 100g of ${query}.`,
     config: {
@@ -112,10 +117,6 @@ export async function searchUniversalFood(query: string): Promise<FoodItem | nul
   } catch { return null; }
 }
 
-/**
- * Added missing export to fix Error in file components/PlanDisplay.tsx on line 4
- * Fetches macro-equivalent meal alternatives using Gemini.
- */
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
@@ -129,24 +130,16 @@ export async function getMealAlternatives(meal: Meal): Promise<string[]> {
     }
   });
   try {
-    const text = response.text || '[]';
-    return JSON.parse(text.trim());
-  } catch {
-    return [];
-  }
+    return JSON.parse(response.text || '[]');
+  } catch { return []; }
 }
 
-/**
- * Added missing export to fix Error in file components/CoachDashboard.tsx on line 4
- * Generates an AI-driven coaching performance synthesis based on biometrics and check-in.
- */
 export async function generatePerformanceReport(name: string, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<string> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Analyze performance for ${name}.
     Logs (steps/calories): ${logs.slice(0, 5).map(l => `${l.steps}/${l.caloriesConsumed}`).join(', ')}.
-    Check-in: Energy ${checkIn.energyLevel}/10, Stress ${checkIn.stressLevel}/10, Sleep ${checkIn.sleepHours}h.
-    Coach Synthesis:`,
+    Check-in: Energy ${checkIn.energyLevel}/10, Stress ${checkIn.stressLevel}/10, Sleep ${checkIn.sleepHours}h.`,
     config: {
       systemInstruction: "You are an elite fitness coach. Provide a brief, high-impact performance summary (2-3 sentences)."
     }
