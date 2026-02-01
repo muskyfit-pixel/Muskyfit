@@ -99,7 +99,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
                   <button 
                     key={r.id} 
                     onClick={() => setRituals(prev => ({ ...prev, [r.id]: !(prev as any)[r.id] }))}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${(rituals as any)[r.id] ? 'bg-cyan-600/20 border-cyan-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${(rituals as any)[r.id] ? 'bg-cyan-600/20 border-cyan-500 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
                   >
                      <span className="text-[10px] font-black uppercase tracking-widest">{r.label}</span>
                      <span>{r.icon}</span>
