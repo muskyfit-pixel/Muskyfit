@@ -76,7 +76,7 @@ const App = () => {
         }
       }
     } catch (e) {
-      console.error("Plan Error:", e);
+      console.error("Build Plan Error:", e);
     } finally {
       setIsLoading(false);
     }
@@ -90,8 +90,8 @@ const App = () => {
           energyLevel: 5,
           stressLevel: 5,
           sleepHours: 8,
-          digestionStatus: 'Good',
-          clientComments: 'Coach review update',
+          digestionStatus: 'Elite',
+          clientComments: 'System generated review record',
           review: review
         };
         return { ...c, checkIns: [newCheckIn, ...c.checkIns] };
@@ -123,11 +123,11 @@ const App = () => {
 
     if (currentClient.planStatus === 'CONSULTATION_SUBMITTED') {
       return (
-        <div className="max-w-2xl mx-auto text-center py-20 px-6 bg-slate-900/50 rounded-3xl border border-slate-800">
-          <div className="text-5xl mb-6">⏳</div>
-          <h2 className="text-3xl font-bold text-white mb-4">Application Under Review</h2>
-          <p className="text-slate-400 mb-8">Hi {currentClient.profile.name}. Your coach is building your bespoke protocol. Check back soon.</p>
-          <button onClick={() => setRole('COACH')} className="bg-white text-black px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest">Switch to Coach View</button>
+        <div className="max-w-2xl mx-auto text-center py-24 px-6 bg-slate-900/40 rounded-[3rem] border border-slate-800 backdrop-blur-sm">
+          <div className="text-6xl mb-8 animate-pulse">🧬</div>
+          <h2 className="text-4xl font-black text-white mb-4 italic uppercase tracking-tighter">Analysing Phenotype</h2>
+          <p className="text-slate-400 mb-10 max-w-md mx-auto">Hi {currentClient.profile.name}. Your coach is currently engineering your bespoke V-Taper protocol. We will notify you once your 12-week block is live.</p>
+          <button onClick={() => setRole('COACH')} className="bg-cyan-600 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-lg shadow-cyan-500/20 hover:bg-cyan-500 transition-all">Enter Coach Command Center</button>
         </div>
       );
     }
@@ -145,51 +145,54 @@ const App = () => {
       case 'radar': return <ResourceRadar />;
       default: 
         return (
-          <div className="space-y-6 pb-20 animate-in fade-in duration-500">
-            <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex justify-between items-center">
+          <div className="space-y-6 pb-24 animate-in fade-in duration-700">
+            <div className="bg-slate-900/50 p-8 rounded-[2.5rem] border border-slate-800 flex justify-between items-center shadow-xl">
               <div>
-                <h2 className="text-2xl font-bold text-white">Hi, {currentClient.profile.name}</h2>
-                <p className="text-xs text-slate-500 uppercase tracking-widest font-bold italic">MUSKYFIT Elite Status Active</p>
+                <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Hi, {currentClient.profile.name}</h2>
+                <p className="text-[10px] text-cyan-500 uppercase tracking-[0.4em] font-black mt-1">Elite Protocol Active</p>
               </div>
-              <div className="px-4 py-1 bg-cyan-600/10 text-cyan-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-cyan-500/20 shadow-lg shadow-cyan-500/10">Active</div>
+              <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center shadow-inner">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+              </div>
             </div>
 
-            <ReadinessHUD score={92} sleep={7.5} stress="Optimal" />
+            <ReadinessHUD score={94} sleep={7.8} stress="Optimal" />
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 flex flex-col justify-between group hover:border-cyan-500 transition-all cursor-pointer shadow-xl" onClick={() => setActiveTab('workout')}>
-                 <div>
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Next Session</h3>
-                    <p className="text-xl font-bold text-white mb-6 italic uppercase">{currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex]?.title || 'Rest Day'}</p>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 flex flex-col justify-between group hover:border-cyan-500 transition-all cursor-pointer shadow-2xl relative overflow-hidden" onClick={() => setActiveTab('workout')}>
+                 <div className="absolute top-0 right-0 p-8 opacity-5 text-6xl font-black italic uppercase">Lift</div>
+                 <div className="relative z-10">
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Next Command</h3>
+                    <p className="text-2xl font-black text-white mb-8 italic uppercase tracking-tight">{currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex]?.title || 'Rest & Recovery'}</p>
                  </div>
-                 <button className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-xl text-xs group-hover:bg-cyan-500 group-hover:text-white transition shadow-lg">Start Session</button>
+                 <button className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl text-[10px] group-hover:bg-cyan-500 group-hover:text-white transition shadow-xl italic">Execute Session</button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                 <button onClick={() => setActiveTab('log')} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition shadow-lg group">
-                    <span className="text-xl mb-1 block group-hover:scale-110 transition-transform">🥗</span>
-                    <p className="text-[9px] font-black text-white uppercase tracking-widest">Food Diary</p>
+              <div className="grid grid-cols-2 gap-4">
+                 <button onClick={() => setActiveTab('log')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 text-center hover:border-cyan-500 transition-all shadow-lg group">
+                    <span className="text-2xl mb-2 block group-hover:scale-125 transition-transform">🥗</span>
+                    <p className="text-[9px] font-black text-white uppercase tracking-widest">Diary</p>
                  </button>
-                 <button onClick={() => setActiveTab('plans')} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition shadow-lg group">
-                    <span className="text-xl mb-1 block group-hover:scale-110 transition-transform">📋</span>
-                    <p className="text-[9px] font-black text-white uppercase tracking-widest">My Plan</p>
+                 <button onClick={() => setActiveTab('plans')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 text-center hover:border-cyan-500 transition-all shadow-lg group">
+                    <span className="text-2xl mb-2 block group-hover:scale-125 transition-transform">📋</span>
+                    <p className="text-[9px] font-black text-white uppercase tracking-widest">Protocol</p>
                  </button>
-                 <button onClick={() => setActiveTab('concierge')} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition shadow-lg group">
-                    <span className="text-xl mb-1 block group-hover:scale-110 transition-transform">💬</span>
+                 <button onClick={() => setActiveTab('concierge')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 text-center hover:border-cyan-500 transition-all shadow-lg group">
+                    <span className="text-2xl mb-2 block group-hover:scale-125 transition-transform">💬</span>
                     <p className="text-[9px] font-black text-white uppercase tracking-widest">Concierge</p>
                  </button>
-                 <button onClick={() => setActiveTab('check-in')} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition shadow-lg group">
-                    <span className="text-xl mb-1 block group-hover:scale-110 transition-transform">📅</span>
-                    <p className="text-[9px] font-black text-white uppercase tracking-widest">Check-In</p>
+                 <button onClick={() => setActiveTab('check-in')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 text-center hover:border-cyan-500 transition-all shadow-lg group">
+                    <span className="text-2xl mb-2 block group-hover:scale-125 transition-transform">📅</span>
+                    <p className="text-[9px] font-black text-white uppercase tracking-widest">Audit</p>
                  </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-               <button onClick={() => setActiveTab('vault')} className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[9px] font-bold text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest">The Vault</button>
-               <button onClick={() => setActiveTab('transformation')} className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[9px] font-bold text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest">Progress</button>
-               <button onClick={() => setActiveTab('strength')} className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[9px] font-bold text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest">Strength</button>
-               <button onClick={() => setActiveTab('radar')} className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-[9px] font-bold text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest">Radar</button>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               <button onClick={() => setActiveTab('vault')} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 text-[10px] font-black text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest italic">The Vault</button>
+               <button onClick={() => setActiveTab('transformation')} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 text-[10px] font-black text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest italic">Progress</button>
+               <button onClick={() => setActiveTab('strength')} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 text-[10px] font-black text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest italic">Matrix</button>
+               <button onClick={() => setActiveTab('radar')} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 text-[10px] font-black text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 uppercase transition tracking-widest italic">Radar</button>
             </div>
           </div>
         );
@@ -199,7 +202,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 font-sans selection:bg-cyan-500/30">
       <Navigation role={role} setRole={setRole} activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="max-w-4xl mx-auto py-6 px-4">
+      <main className="max-w-4xl mx-auto py-8 px-4">
         {renderContent()}
       </main>
     </div>
