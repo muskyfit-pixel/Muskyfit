@@ -13,6 +13,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
   const [searchTerm, setSearchTerm] = useState('');
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [currentMeal, setCurrentMeal] = useState<MealCategory | null>(null);
+  const [rituals, setRituals] = useState({ mobility: false, supplements: false, morningSunlight: false, noPhoneBeforeBed: false });
 
   const totals = selectedFoods.reduce((acc, f) => ({
     calories: acc.calories + f.calories,
@@ -24,59 +25,162 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({ onSave, targetMacros = { ca
   const handleAiSearch = async () => {
     if (!searchTerm.trim() || !currentMeal) return;
     setIsAiSearching(true);
-    const result = await searchUniversalFood(searchTerm);
-    if (result) {
-      setSelectedFoods(prev => [...prev, { ...result, logId: Date.now(), category: currentMeal }]);
-      setSearchTerm('');
-      setCurrentMeal(null);
+    try {
+      const result = await searchUniversalFood(searchTerm);
+      if (result) {
+        setSelectedFoods(prev => [...prev, { ...result, logId: Date.now(), category: currentMeal }]);
+        setSearchTerm('');
+        setCurrentMeal(null);
+      }
+    } finally {
+      setIsAiSearching(false);
     }
-    setIsAiSearching(false);
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-32 space-y-8 px-4">
-      <div className="bg-slate-900 p-8 rounded-[2rem] border border-slate-800 text-center">
-        <p className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-2 italic">Energy Management</p>
-        <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">{totals.calories} / {targetMacros.calories} kcal</h2>
+    <div className="max-w-4xl mx-auto pb-40 space-y-8 px-4">
+      <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-cyan-500/20" />
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+           <div className="text-center md:text-left">
+              <p className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-1 italic">Energy Balance</p>
+              <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
+                 {totals.calories} <span className="text-slate-600">/</span> {targetMacros.calories}
+              </h2>
+              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-2">kCal Consumed Today</p>
+           </div>
+           <div className="flex gap-4">
+              <div className="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800 w-24">
+                 <p className="text-[7px] font-black text-slate-600 uppercase mb-1">Protein</p>
+                 <p className="text-sm font-black text-white">{totals.p}g</p>
+              </div>
+              <div className="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800 w-24">
+                 <p className="text-[7px] font-black text-slate-600 uppercase mb-1">Carbs</p>
+                 <p className="text-sm font-black text-white">{totals.c}g</p>
+              </div>
+              <div className="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800 w-24">
+                 <p className="text-[7px] font-black text-slate-600 uppercase mb-1">Fats</p>
+                 <p className="text-sm font-black text-white">{totals.f}g</p>
+              </div>
+           </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'] as MealCategory[]).map(meal => (
-          <div key={meal} className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xs font-black text-slate-500 uppercase">{meal}</h3>
-              <button onClick={() => setCurrentMeal(meal)} className="text-[10px] font-black text-cyan-500 uppercase">+ Add</button>
+          <div key={meal} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 group hover:border-slate-700 transition-all">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest italic">{meal}</h3>
+              <button 
+                onClick={() => setCurrentMeal(meal)}
+                className="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center text-cyan-500 border border-slate-800 hover:border-cyan-500 transition-all"
+              >
+                +
+              </button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {selectedFoods.filter(f => f.category === meal).map(f => (
-                <div key={f.logId} className="flex justify-between text-xs text-white bg-slate-950 p-3 rounded-xl border border-slate-800">
-                  <span>{f.name}</span>
-                  <span className="font-black">{f.calories}kcal</span>
+                <div key={f.logId} className="flex justify-between items-center p-4 bg-slate-950 rounded-2xl border border-slate-800 group/item">
+                  <div>
+                    <p className="text-xs font-black text-white">{f.name}</p>
+                    <p className="text-[8px] text-slate-500 uppercase tracking-widest mt-1">{f.servingSize}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                     <span className="text-xs font-black text-cyan-500">{f.calories}</span>
+                     <button onClick={() => setSelectedFoods(prev => prev.filter(x => x.logId !== f.logId))} className="text-slate-700 hover:text-red-500 transition-colors">×</button>
+                  </div>
                 </div>
               ))}
+              {selectedFoods.filter(f => f.category === meal).length === 0 && (
+                <p className="text-[10px] text-slate-600 italic text-center py-4">No data logged for this window.</p>
+              )}
             </div>
           </div>
         ))}
       </div>
 
+      <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800">
+         <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-6 italic">High Performance Rituals</h3>
+         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { id: 'mobility', label: 'Mobility', icon: '🧘' },
+              { id: 'supplements', label: 'Supps', icon: '💊' },
+              { id: 'morningSunlight', label: 'Sunlight', icon: '☀️' },
+              { id: 'noPhoneBeforeBed', label: 'Digital Sunset', icon: '📱' }
+            ].map(r => (
+               <button 
+                  key={r.id}
+                  onClick={() => setRituals(prev => ({ ...prev, [r.id]: !(prev as any)[r.id] }))}
+                  className={`p-5 rounded-2xl border transition-all text-center ${(rituals as any)[r.id] ? 'bg-cyan-600/10 border-cyan-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-600'}`}
+               >
+                  <span className="text-xl block mb-2">{r.icon}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">{r.label}</span>
+               </button>
+            ))}
+         </div>
+      </div>
+
+      <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 flex justify-between items-center">
+         <div>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Step Counter</p>
+            <input 
+               type="number" 
+               value={steps} 
+               onChange={e => setSteps(Number(e.target.value))} 
+               className="bg-transparent text-3xl font-black text-white outline-none w-32 border-b border-slate-800 focus:border-cyan-500 transition" 
+            />
+         </div>
+         <div className="w-16 h-16 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center text-2xl">👟</div>
+      </div>
+
       {currentMeal && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-50 flex items-center justify-center p-6">
-          <div className="max-w-lg w-full bg-slate-900 p-10 rounded-[2.5rem] border border-slate-800 shadow-2xl">
-            <h3 className="text-xl font-black text-white italic uppercase mb-6">Log {currentMeal}</h3>
-            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search food..." className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white outline-none mb-6" />
-            <div className="flex gap-4">
-              <button onClick={() => setCurrentMeal(null)} className="flex-1 py-4 bg-slate-800 text-slate-400 rounded-xl font-black uppercase text-[10px]">Cancel</button>
-              <button onClick={handleAiSearch} disabled={isAiSearching} className="flex-2 py-4 bg-cyan-600 text-white rounded-xl font-black uppercase text-[10px]">
-                {isAiSearching ? 'Identifying...' : 'Search AI'}
-              </button>
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[60] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+          <div className="max-w-xl w-full bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl relative">
+            <button onClick={() => setCurrentMeal(null)} className="absolute top-8 right-8 text-slate-500 hover:text-white text-2xl">×</button>
+            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Log {currentMeal}</h3>
+            <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-[0.3em] mb-10">AI-Powered Nutrient Analysis</p>
+            
+            <div className="space-y-6">
+               <input 
+                  type="text" 
+                  value={searchTerm} 
+                  onChange={e => setSearchTerm(e.target.value)} 
+                  placeholder="e.g. 2 Chapatis and Daal..." 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-white outline-none focus:border-cyan-500 transition-all placeholder:text-slate-700" 
+                  onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
+                  autoFocus
+               />
+               <button 
+                  onClick={handleAiSearch} 
+                  disabled={isAiSearching || !searchTerm.trim()} 
+                  className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic disabled:opacity-20"
+               >
+                  {isAiSearching ? 'Analyzing Intelligence...' : 'Identify Nutrition'}
+               </button>
             </div>
           </div>
         </div>
       )}
 
-      <button onClick={() => onSave({ date: new Date().toISOString().split('T')[0], steps, water: 2, caloriesConsumed: totals.calories, proteinConsumed: totals.p, carbsConsumed: totals.c, fatsConsumed: totals.f, workoutCompleted: false, foods: selectedFoods })} className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl shadow-2xl border-4 border-slate-900 italic">
-        Sync Log
-      </button>
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs px-6 z-[50]">
+        <button 
+          onClick={() => onSave({ 
+            date: new Date().toISOString().split('T')[0], 
+            steps, 
+            water: 2, 
+            caloriesConsumed: totals.calories, 
+            proteinConsumed: totals.p, 
+            carbsConsumed: totals.c, 
+            fatsConsumed: totals.f, 
+            workoutCompleted: false, 
+            foods: selectedFoods,
+            rituals
+          })} 
+          className="w-full py-6 bg-cyan-600 text-white font-black uppercase tracking-[0.3em] rounded-2xl shadow-2xl border-4 border-slate-900 hover:bg-cyan-500 transition-all italic"
+        >
+          Commit Day Log
+        </button>
+      </div>
     </div>
   );
 };
