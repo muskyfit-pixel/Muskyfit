@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import IntakeForm from './components/IntakeForm';
@@ -11,9 +12,10 @@ import ReadinessHUD from './components/ReadinessHUD';
 import MuskyFitVault from './components/MuskyFitVault';
 import TransformationHub from './components/TransformationHub';
 import MuskyFitSupport from './components/MuskyFitSupport';
+import WeeklyReviewView from './components/WeeklyReviewView';
 import { generatePersonalizedPlan } from './services/geminiService';
 import { MOCK_CLIENTS } from './constants';
-import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn } from './types';
+import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn, WeeklyReview } from './types';
 
 const App = () => {
   const [role, setRole] = useState<'COACH' | 'CLIENT'>('CLIENT');
@@ -83,6 +85,19 @@ const App = () => {
     }
   };
 
+  const handleSendReview = (clientId: string, review: WeeklyReview) => {
+    setClients(prev => prev.map(c => {
+      if (c.id === clientId) {
+        const newCheckIns = [...c.checkIns];
+        if (newCheckIns.length > 0) {
+          newCheckIns[0] = { ...newCheckIns[0], review };
+        }
+        return { ...c, checkIns: newCheckIns, performanceStatus: review.status === 'RED' ? 'OFF_TRACK' : 'ON_TRACK' };
+      }
+      return c;
+    }));
+  };
+
   const handleLogSave = (log: DailyLog) => {
     setClients(prev => prev.map(c => c.id === currentClientId ? { ...c, logs: [log, ...c.logs] } : c));
     setActiveTab('client-dashboard');
@@ -118,6 +133,7 @@ const App = () => {
         clients={clients} 
         pendingClient={clients.find(c => c.planStatus === 'CONSULTATION_SUBMITTED') || null} 
         onFinalise={handleFinaliseProtocol} 
+        onSendReview={handleSendReview}
         isLoading={isLoading} 
       />;
     }
@@ -129,7 +145,7 @@ const App = () => {
         <div className="max-w-3xl mx-auto text-center py-24 px-4">
           <div className="mb-10 inline-flex items-center justify-center w-28 h-28 rounded-full bg-slate-900 border-4 border-cyan-500 cyan-glow animate-pulse"><span className="text-5xl">🧬</span></div>
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6 uppercase tracking-tighter italic">Building Protocol</h2>
-          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Your coach is analyzing your biometrics to build your bespoke 12-week V-Taper protocol. Please stand by.</p>
+          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Your coach is analyzing your biometrics to build your bespoke 12-week protocol. Please stand by.</p>
         </div>
       );
     }
@@ -145,6 +161,8 @@ const App = () => {
         />;
       case 'check-in':
         return <WeeklyCheckInForm onSubmit={handleCheckInSubmit} />;
+      case 'performance':
+        return <WeeklyReviewView reviews={currentClient.checkIns.filter(c => c.review).map(c => c.review!)} />;
       case 'concierge': 
         return <MuskyFitSupport client={currentClient} />;
       case 'vault': 
@@ -165,6 +183,23 @@ const App = () => {
             <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl">
                <ReadinessHUD score={85} sleep={7.5} stress="Zen" />
             </div>
+            
+            {currentClient.checkIns.some(c => c.review) && (
+              <button 
+                onClick={() => setActiveTab('performance')}
+                className="w-full p-8 bg-cyan-600/10 border border-cyan-500/30 rounded-[2.5rem] flex items-center justify-between group hover:bg-cyan-600/20 transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="text-4xl">🏆</span>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">Performance Update</p>
+                    <h3 className="text-xl font-black text-white italic">Weekly Review Ready</h3>
+                  </div>
+                </div>
+                <span className="text-white text-2xl group-hover:translate-x-2 transition-transform">→</span>
+              </button>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                <button onClick={() => setActiveTab('workout')} className="p-6 bg-white rounded-3xl text-black font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
                  <span className="text-xl block mb-2">🏋️</span>
