@@ -9,7 +9,7 @@ interface WorkoutTrackerProps {
 }
 
 const WorkoutTracker: React.FC<WorkoutTrackerProps> = ({ currentWorkout, previousProgress, onFinish }) => {
-  // Bulletproof rep parser for ranges like "8-12" or "To Failure"
+  // Regex parser to extract first number from strings like "8-12" or "To Failure (approx 10)"
   const parseReps = (val: string): number => {
     const match = val.match(/\d+/);
     return match ? parseInt(match[0]) : 10;
