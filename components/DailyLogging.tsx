@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FOOD_DATABASE } from '../constants';
 import { searchUniversalFood } from '../services/geminiService';
@@ -6,35 +7,31 @@ import { MacroSplit, DailyLog, MealCategory, LoggedFood, FoodItem } from '../typ
 interface DailyLoggingProps {
   onSave: (log: DailyLog) => void;
   targetMacros?: MacroSplit;
-  initialFoods?: LoggedFood[];
 }
 
 const DailyLogging: React.FC<DailyLoggingProps> = ({ 
   onSave, 
-  targetMacros = { calories: 2400, p: 180, c: 220, f: 70 },
-  initialFoods = []
+  targetMacros = { calories: 2400, p: 180, c: 220, f: 70 }
 }) => {
   const [steps, setSteps] = useState(8000);
-  const [water, setWater] = useState(2.0); 
-  const [selectedFoods, setSelectedFoods] = useState<LoggedFood[]>(initialFoods);
+  const [selectedFoods, setSelectedFoods] = useState<LoggedFood[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentLoggingMeal, setCurrentLoggingMeal] = useState<MealCategory | null>(null);
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [rituals, setRituals] = useState({ mobility: false, supplements: false, morningSunlight: false, noPhoneBeforeBed: false });
 
   const totals = selectedFoods.reduce((acc, f) => ({
-    calories: acc.calories + (f.calories || 0),
-    p: acc.p + (f.protein || 0),
-    c: acc.c + (f.carbs || 0),
-    f: acc.f + (f.fats || 0)
+    calories: acc.calories + f.calories,
+    p: acc.p + f.protein,
+    c: acc.c + f.carbs,
+    f: acc.f + f.fats
   }), { calories: 0, p: 0, c: 0, f: 0 });
 
-  const remaining = (targetMacros?.calories || 2400) - totals.calories;
+  const remaining = targetMacros.calories - totals.calories;
 
-  const handleAddFood = (food: FoodItem, category?: MealCategory) => {
-    const targetCategory = category || currentLoggingMeal;
-    if (!targetCategory) return;
-    const logged: LoggedFood = { ...food, logId: Date.now(), category: targetCategory };
+  const handleAddFood = (food: FoodItem) => {
+    if (!currentLoggingMeal) return;
+    const logged: LoggedFood = { ...food, logId: Date.now(), category: currentLoggingMeal };
     setSelectedFoods(prev => [...prev, logged]);
     setSearchTerm('');
     setCurrentLoggingMeal(null);
@@ -59,7 +56,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
              <div className="relative w-24 h-24 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90">
                    <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800" />
-                   <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="8" fill="transparent" className={`${remaining >= 0 ? 'text-cyan-500' : 'text-red-500'} transition-all`} strokeDasharray={2 * Math.PI * 44} strokeDashoffset={2 * Math.PI * 44 * (1 - Math.min(totals.calories / (targetMacros.calories || 2400), 1))} />
+                   <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="8" fill="transparent" className={`${remaining >= 0 ? 'text-cyan-500' : 'text-red-500'} transition-all`} strokeDasharray={2 * Math.PI * 44} strokeDashoffset={2 * Math.PI * 44 * (1 - Math.min(totals.calories / targetMacros.calories, 1))} />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                    <p className="text-xs font-black text-slate-500 uppercase leading-none">Left</p>
@@ -120,7 +117,7 @@ const DailyLogging: React.FC<DailyLoggingProps> = ({
       </div>
 
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-6">
-        <button onClick={() => onSave({ date: new Date().toISOString().split('T')[0], steps, water, caloriesConsumed: totals.calories, proteinConsumed: totals.p, carbsConsumed: totals.c, fatsConsumed: totals.f, workoutCompleted: false, foods: selectedFoods, rituals })} className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic border-4 border-slate-900">
+        <button onClick={() => onSave({ date: new Date().toISOString().split('T')[0], steps, water: 2, caloriesConsumed: totals.calories, proteinConsumed: totals.p, carbsConsumed: totals.c, fatsConsumed: totals.f, workoutCompleted: false, foods: selectedFoods, rituals })} className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic border-4 border-slate-900">
           Sync Day Log
         </button>
       </div>
