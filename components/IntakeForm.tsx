@@ -9,35 +9,15 @@ interface IntakeFormProps {
 
 const IntakeForm: React.FC<IntakeFormProps> = ({ onSubmit, isLoading }) => {
   const [formData, setFormData] = useState<IntakeData>({
-    name: '',
-    email: '',
-    phone: '',
-    dob: '',
-    gender: 'MALE',
-    weight: 75,
-    height: 175,
-    heartCondition: false,
-    chestPainActivity: false,
-    chestPainRest: false,
-    dizzinessLossBalance: false,
-    boneJointProblem: false,
-    bloodPressureMedication: false,
-    otherReasonNoExercise: false,
-    pregnant: false,
-    chronicCondition: false,
-    currentMedications: '',
-    activityLevel: 'Moderately Active',
-    jobType: 'Desk',
-    sleepQuality: 'Average',
-    stressLevel: 'Moderate',
-    trainingDaysPerWeek: 4,
-    goal: 'FAT_LOSS',
-    dietPreference: 'NON_VEG',
-    culturalPreference: 'INDIAN',
-    religiousExclusions: '',
-    allergies: '',
-    injuries: '',
-    trainingHistory: ''
+    name: '', email: '', phone: '', dob: '', gender: 'MALE',
+    weight: 75, height: 175, heartCondition: false, chestPainActivity: false,
+    chestPainRest: false, dizzinessLossBalance: false, boneJointProblem: false,
+    bloodPressureMedication: false, otherReasonNoExercise: false, pregnant: false,
+    chronicCondition: false, currentMedications: '', activityLevel: 'Moderately Active',
+    jobType: 'Desk', sleepQuality: 'Average', stressLevel: 'Moderate',
+    trainingDaysPerWeek: 4, goal: 'FAT_LOSS', dietPreference: 'NON_VEG',
+    culturalPreference: 'INDIAN', religiousExclusions: '', allergies: '',
+    injuries: '', trainingHistory: ''
   });
 
   const [step, setStep] = useState(1);
@@ -48,179 +28,64 @@ const IntakeForm: React.FC<IntakeFormProps> = ({ onSubmit, isLoading }) => {
     setFormData(prev => ({ ...prev, [name]: finalValue }));
   };
 
-  const nextStep = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setStep(prev => prev + 1);
-  };
-  const prevStep = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setStep(prev => prev - 1);
-  };
-
   return (
-    <div className="max-w-4xl mx-auto bg-slate-900 rounded-[3rem] shadow-2xl border border-slate-800 overflow-hidden mb-20">
-      <div className="p-10 md:p-16">
-        <div className="mb-12 text-center">
-          <h2 className="text-5xl font-black metallic-text tracking-tighter mb-4 uppercase italic">INTAKE PROTOCOL</h2>
-          <p className="text-cyan-500 font-bold text-[10px] uppercase tracking-[0.5em]">Defining Your Genetic Potential</p>
-        </div>
-
-        <div className="flex gap-2 mb-16">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="flex-1 h-1.5 rounded-full bg-slate-800 relative overflow-hidden">
-               <div className={`absolute inset-0 bg-cyan-500 transition-all duration-700 ${step >= i ? 'w-full' : 'w-0'}`} />
-            </div>
-          ))}
-        </div>
-
-        {step === 1 && (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">01 Identity & Contact</h3>
-            <div className="grid md:grid-cols-2 gap-10">
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Full Name</label>
-                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Maya Sharma" className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white focus:border-cyan-500 outline-none transition-all placeholder:text-slate-700" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Biological Identity</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['MALE', 'FEMALE'] as Gender[]).map((g) => (
-                    <button 
-                      key={g}
-                      type="button"
-                      onClick={() => setFormData({...formData, gender: g})} 
-                      className={`py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${formData.gender === g ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/20' : 'bg-slate-950 border border-slate-800 text-slate-500'}`}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Email (Reports Delivery)</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white focus:border-cyan-500 outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Weight (kg)</label>
-                <input type="number" name="weight" value={formData.weight} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white" />
-              </div>
-            </div>
-            <button onClick={nextStep} disabled={!formData.name || !formData.email} className="w-full bg-white text-black py-5 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-cyan-500 hover:text-white transition-all shadow-xl disabled:opacity-20 border-b-4 border-slate-300">Proceed to Lifestyle</button>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">02 Professional Lifestyle</h3>
-            <div className="grid md:grid-cols-2 gap-10">
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Corporate Stress</label>
-                <select name="stressLevel" value={formData.stressLevel} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white">
-                  <option value="Low">Zen (Balanced)</option>
-                  <option value="Moderate">Moderate (Busy Professional)</option>
-                  <option value="High">Intense (Executive Level)</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Sleep Profile</label>
-                <select name="sleepQuality" value={formData.sleepQuality} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white">
-                  <option value="Poor">Restless (4-5h)</option>
-                  <option value="Average">Decent (6-7h)</option>
-                  <option value="Good">Optimal (8h+)</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <button onClick={prevStep} className="flex-1 bg-slate-800 text-slate-500 py-5 rounded-2xl font-black uppercase tracking-widest">Back</button>
-              <button onClick={nextStep} className="flex-[2] bg-white text-black py-5 rounded-2xl font-black uppercase tracking-[0.2em] border-b-4 border-slate-300">Define Objective</button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">03 Primary Objective</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { id: 'FAT_LOSS', label: 'Fat Loss', sub: 'Lean & Athletic', icon: '🔥' },
-                { id: 'MUSCLE_GAIN', label: 'Hypertrophy', sub: 'Structural Density', icon: '🦾' },
-                { id: 'LONGEVITY_HEALTH', label: 'Longevity', sub: 'Executive Health', icon: '🧬' },
-                { id: 'ATHLETIC_PERFORMANCE', label: 'Performance', sub: 'Elite Athleticism', icon: '⚡' }
-              ].map(g => (
-                <button 
-                  key={g.id}
-                  onClick={() => setFormData({...formData, goal: g.id as any})}
-                  className={`p-10 rounded-[2.5rem] border text-left transition-all relative overflow-hidden group ${formData.goal === g.id ? 'bg-cyan-600 border-cyan-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
-                >
-                  <span className="text-4xl mb-6 block group-hover:scale-110 transition duration-500">{g.icon}</span>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] mb-1">{g.label}</p>
-                  <p className="text-[10px] opacity-70 font-bold italic">{g.sub}</p>
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-4">
-              <button onClick={prevStep} className="flex-1 bg-slate-800 text-slate-500 py-5 rounded-2xl font-black uppercase tracking-widest">Back</button>
-              <button onClick={nextStep} className="flex-[2] bg-white text-black py-5 rounded-2xl font-black uppercase tracking-[0.2em] border-b-4 border-slate-300">Fueling Design</button>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">04 Fueling & Nutrition</h3>
-            <div className="grid md:grid-cols-2 gap-10">
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Dietary Preference</label>
-                <select name="dietPreference" value={formData.dietPreference} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white">
-                  <option value="NON_VEG">Standard (Non-Veg)</option>
-                  <option value="VEGETARIAN">Vegetarian (Pure)</option>
-                  <option value="VEGAN">Plant-Based (Vegan)</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Food Culture Context</label>
-                <select name="culturalPreference" value={formData.culturalPreference} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white">
-                  <option value="INDIAN">South Asian / Indian Staples</option>
-                  <option value="WESTERN">Global / Western Cuisines</option>
-                  <option value="MIXED">Fusion / Corporate Lunching</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <button onClick={prevStep} className="flex-1 bg-slate-800 text-slate-500 py-5 rounded-2xl font-black uppercase tracking-widest">Back</button>
-              <button onClick={nextStep} className="flex-[2] bg-white text-black py-5 rounded-2xl font-black uppercase tracking-[0.2em] border-b-4 border-slate-300">Final Validation</button>
-            </div>
-          </div>
-        )}
-
-        {step === 5 && (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">05 Final Commitment</h3>
-            <div className="bg-slate-950 p-10 rounded-[3rem] border border-slate-800 space-y-6">
-              <p className="text-sm text-slate-400 italic leading-relaxed">
-                "I confirm that all biometric and medical data provided is accurate. I am ready to commit to the MUSKYFIT protocol for the next 12 weeks to achieve my professional physical peak."
-              </p>
-              <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 rounded-full bg-cyan-600/20 border border-cyan-500 flex items-center justify-center text-cyan-500">✓</div>
-                 <div>
-                    <p className="text-xs font-black text-white uppercase">{formData.name}</p>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Protocol Enrolment Pending</p>
-                 </div>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <button onClick={prevStep} className="flex-1 bg-slate-800 text-slate-500 py-5 rounded-2xl font-black uppercase tracking-widest">Back</button>
-              <button 
-                onClick={() => onSubmit(formData)} 
-                disabled={isLoading} 
-                className="flex-[2] bg-cyan-600 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-cyan-500 transition-all border-b-4 border-cyan-900"
-              >
-                {isLoading ? 'Synthesizing Protocol...' : 'Finalize & Join Team'}
-              </button>
-            </div>
-          </div>
-        )}
+    <div className="max-w-2xl mx-auto bg-slate-900 rounded-3xl border border-slate-800 p-8 shadow-2xl mb-20">
+      <div className="text-center mb-10">
+        <h2 className="text-3xl font-bold text-white mb-2 italic uppercase">Client Intake</h2>
+        <p className="text-sm text-slate-500">Please provide your details for your bespoke programme.</p>
       </div>
+
+      {step === 1 && (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label>
+            <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white" placeholder="Enter your name" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
+            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white" placeholder="email@example.com" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Weight (kg)</label>
+              <input type="number" name="weight" value={formData.weight} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Height (cm)</label>
+              <input type="number" name="height" value={formData.height} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white" />
+            </div>
+          </div>
+          <button onClick={() => setStep(2)} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-cyan-500 hover:text-white transition">Next Step</button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">What is your main goal?</label>
+            <select name="goal" value={formData.goal} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white">
+              <option value="FAT_LOSS">Fat Loss / Toning</option>
+              <option value="MUSCLE_GAIN">Build Muscle / Strength</option>
+              <option value="STRENGTH">Power / Strength</option>
+              <option value="LONGEVITY_HEALTH">General Health & Longevity</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Dietary Choice</label>
+            <select name="dietPreference" value={formData.dietPreference} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white">
+              <option value="NON_VEG">Eat Meat & Vegetables</option>
+              <option value="VEGETARIAN">Vegetarian</option>
+              <option value="VEGAN">Vegan</option>
+            </select>
+          </div>
+          <div className="flex gap-4">
+            <button onClick={() => setStep(1)} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl">Back</button>
+            <button onClick={() => onSubmit(formData)} disabled={isLoading} className="flex-[2] py-4 bg-cyan-600 text-white font-bold rounded-xl">
+              {isLoading ? 'Creating Plan...' : 'Submit Application'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
