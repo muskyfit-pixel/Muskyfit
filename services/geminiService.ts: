@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const parseGeminiJson = (text: string) => {
@@ -13,7 +12,7 @@ const parseGeminiJson = (text: string) => {
 
 /**
  * Generates a bespoke 12-week protocol for Asian individuals.
- * Now factors in biological age for recovery and longevity.
+ * Tuned for the Asian Male V-Taper and Professional Longevity.
  */
 export async function generatePersonalizedPlan(data: any): Promise<any> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -21,21 +20,16 @@ export async function generatePersonalizedPlan(data: any): Promise<any> {
   
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
-    contents: `You are an elite fitness coach for Asian individuals in the UK. 
-    Create a bespoke 12-week elite programme for: ${data.name}, Age: ${age}, Gender: ${data.gender}, Goal: ${data.goal}, Diet: ${data.dietPreference}.
-    Requirements:
-    - Use UK English and metric units (kg/cm).
-    - PHYSIOLOGY: 
-      - If AGE > 30: Focus on joint longevity, injury prevention, and metabolic health. Adjust volume for optimal recovery.
-      - If AGE < 30: Focus on higher volume hypertrophy and peak metabolic conditioning.
-    - GENDER FOCUS:
-      - MALE: V-Taper aesthetic (Shoulders/Back/Chest).
-      - FEMALE: Athletic hourglass/toned silhouette (Lower body/Glute/Core).
-    - CULTURAL NUTRITION: High-protein versions of Asian staples (Lentils, Tandoori, Stir-fry, etc.).
-    - Return JSON with: trainingDayMacros, restDayMacros, mealPlan (array), workoutSplit (array), coachAdvice.`,
-    config: { 
-      responseMimeType: "application/json"
-    }
+    contents: `You are the Head Coach at MUSKYFIT, the world's leading fitness consultancy for the Asian community. 
+    Create a bespoke 12-week elite protocol for: ${data.name}, Age: ${age}, Gender: ${data.gender}, Goal: ${data.goal}, Diet: ${data.dietPreference}.
+    
+    Niche Logic:
+    - DEMOGRAPHIC: Primarily South Asian / East Asian Male Professionals & High-Performance Youth.
+    - If AGE > 30: "Executive Protocol". Manage high-stress careers, improve metabolic flexibility, and joint health.
+    - If AGE < 30: "Peak Hypertrophy". Focus on maximum muscular development and power.
+    - NUTRITION: Include high-protein adaptations of Indian/Asian staples (e.g., Masoor Dal, Paneer, Lean Lamb). 
+    - RETURN JSON: trainingDayMacros (cal, p, c, f), restDayMacros, mealPlan (array of {mealType, name, ingredients, instructions, macros}), workoutSplit (array of {day, title, exercises: [{name, sets, reps, notes}]}), coachAdvice.`,
+    config: { responseMimeType: "application/json" }
   });
   return parseGeminiJson(response.text);
 }
@@ -44,10 +38,8 @@ export async function searchUniversalFood(query: string): Promise<any> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Provide nutrition data for: ${query}. Focus on UK/Asian food profiles.`,
-    config: { 
-      responseMimeType: "application/json"
-    }
+    contents: `Nutrition data for: ${query}. Focus on UK/Asian portions and accurate macro estimates. Return JSON: {name, calories, protein, carbs, fats, servingSize}.`,
+    config: { responseMimeType: "application/json" }
   });
   return parseGeminiJson(response.text);
 }
@@ -59,7 +51,7 @@ export async function analyzeMealPhoto(base64: string): Promise<any> {
     contents: { 
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64 } }, 
-        { text: 'Analyze this meal for macros.' }
+        { text: 'Analyze this elite meal for macro accuracy. Return JSON: {name, calories, protein, carbs, fats}.' }
       ] 
     },
     config: { responseMimeType: "application/json" }
@@ -71,10 +63,38 @@ export async function groundedConciergeChat(prompt: string, context: string): Pr
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Context: ${context}\n\nClient Query: ${prompt}`,
+    contents: `Protocol Context: ${context}\n\nClient Support Query: ${prompt}`,
     config: {
       tools: [{ googleSearch: {} }],
-      systemInstruction: "You are the MUSKYFIT Head Coach. You specialize in life-long physical transformation for the Asian community in the UK, from young athletes to 30+ busy professionals. Be authoritative yet empathetic."
+      systemInstruction: "You are the MUSKYFIT Head Coach. You are direct, authoritative, and world-class. You specialize in Asian physical transformation. Your advice is evidence-based and elite."
+    },
+  });
+  return { 
+    text: response.text || "", 
+    sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
+  };
+}
+
+/**
+ * Finds local elite resources using Google Maps grounding.
+ * Requires Gemini 2.5 series model.
+ */
+export async function findEliteResources(query: string, latitude: number, longitude: number): Promise<{ text: string, sources: any[] }> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-native-audio-preview-12-2025",
+    contents: `Find elite fitness/health resources for: ${query}. Use current location context.`,
+    config: {
+      tools: [{ googleMaps: {} }],
+      toolConfig: {
+        retrievalConfig: {
+          latLng: {
+            latitude,
+            longitude
+          }
+        }
+      },
+      systemInstruction: "You are the MUSKYFIT Resource Scout. Find world-class facilities and suppliers near the user's location. Direct and efficient advice."
     },
   });
   return { 
@@ -85,10 +105,12 @@ export async function groundedConciergeChat(prompt: string, context: string): Pr
 
 export async function generateGoalVisualization(goal: string, biometrics: string, gender: string = "male", age: number = 30): Promise<string | null> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const ageContext = age >= 30 ? "distinguished and athletic professional" : "peak performance athlete";
+  const context = age >= 30 ? "successful athletic professional" : "elite competitive athlete";
+  const prompt = `Photorealistic luxury visualization of a ${context} Asian ${gender} with a world-class aesthetic physique. Dynamic fitness pose, cinematic lighting, elite gym background. Achieving: ${goal}. Profile: ${biometrics}.`;
+  
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-image-preview',
-    contents: { parts: [{ text: `Photorealistic luxury fitness visualization of a ${ageContext} Asian ${gender} achieving: ${goal}. Based on: ${biometrics}. Professional cinematic gym environment, focused on aesthetic vitality.` }] },
+    contents: { parts: [{ text: prompt }] },
     config: { imageConfig: { aspectRatio: "3:4", imageSize: "1K" } }
   });
   for (const part of response.candidates?.[0]?.content?.parts || []) {
@@ -110,22 +132,6 @@ export async function generateWeeklyAudioBriefing(text: string): Promise<string 
   return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
 }
 
-export async function findEliteResources(query: string, lat: number, lng: number): Promise<{ text: string, sources: any[] }> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: `Find local elite fitness resources for: ${query}.`,
-    config: {
-      tools: [{ googleMaps: {} }],
-      toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } }
-    },
-  });
-  return { 
-    text: response.text || "", 
-    sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
-  };
-}
-
 export async function connectLiveCoach(callbacks: any): Promise<any> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   return ai.live.connect({
@@ -134,11 +140,12 @@ export async function connectLiveCoach(callbacks: any): Promise<any> {
     config: {
       responseModalities: [Modality.AUDIO],
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-      systemInstruction: 'You are the MUSKYFIT Head Coach. Expert in coaching Asian men and women across all age groups. Professional and motivating.',
+      systemInstruction: 'You are the MUSKYFIT Head Coach. Talk to the client about their daily form, energy levels, and protocol adherence.',
     },
   });
 }
 
+// Manual encoding/decoding
 export function encodePCM(data: Float32Array): string {
   const l = data.length;
   const int16 = new Int16Array(l);
