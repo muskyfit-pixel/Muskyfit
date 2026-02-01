@@ -16,7 +16,7 @@ import WeeklyReviewView from './components/WeeklyReviewView';
 import StrengthMatrix from './components/StrengthMatrix';
 import { generatePersonalizedPlan } from './services/geminiService';
 import { MOCK_CLIENTS } from './constants';
-import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn, WeeklyReview, PersonalBest } from './types';
+import { Client, IntakeData, ExerciseLog, DailyLog, WeeklyCheckIn, WeeklyReview } from './types';
 
 const App = () => {
   const [role, setRole] = useState<'COACH' | 'CLIENT'>('CLIENT');
@@ -112,7 +112,7 @@ const App = () => {
 
   const handleCheckInSubmit = (checkIn: WeeklyCheckIn) => {
     setClients(prev => prev.map(c => c.id === currentClientId ? { ...c, checkIns: [checkIn, ...c.checkIns] } : c));
-    setActiveTab('client-dashboard');
+    setActiveTab('performance');
   };
 
   const handleWorkoutFinish = (exerciseLogs: ExerciseLog[]) => {
@@ -120,7 +120,6 @@ const App = () => {
     const workoutCount = currentClient.plan.workoutSplit.length;
     const nextIndex = (currentClient.currentWorkoutIndex + 1) % workoutCount;
     
-    // Check for PBs
     const updatedPBs = [...(currentClient.personalBests || [])];
     const today = new Date().toISOString().split('T')[0];
     
@@ -175,7 +174,7 @@ const App = () => {
         <div className="max-w-3xl mx-auto text-center py-24 px-4">
           <div className="mb-10 inline-flex items-center justify-center w-28 h-28 rounded-full bg-slate-900 border-4 border-cyan-500 cyan-glow animate-pulse"><span className="text-5xl">🧬</span></div>
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6 uppercase tracking-tighter italic">Building Protocol</h2>
-          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Your coach is analyzing your biometrics to build your bespoke 12-week protocol. Please stand by.</p>
+          <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto">Coach Arjun is analyzing your biometrics to build your bespoke 12-week protocol. Your elite roadmap is being synthesized.</p>
         </div>
       );
     }
@@ -211,4 +210,69 @@ const App = () => {
         />;
       default: 
         return (
-          <div className="space-y-10 px
+          <div className="space-y-10 px-4 md:px-0 pb-32 animate-in fade-in duration-700">
+            <div className="flex justify-between items-end">
+               <div>
+                  <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Status Dashboard</h2>
+                  <p className="text-cyan-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2">Executive Performance Cockpit</p>
+               </div>
+               <div className="bg-slate-900 px-6 py-3 rounded-2xl border border-slate-800 text-right">
+                  <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Active Goal</p>
+                  <p className="text-xs font-black text-white italic">{currentClient.intake?.goal.replace(/_/g, ' ')}</p>
+               </div>
+            </div>
+
+            <ReadinessHUD score={88} sleep={currentClient.checkIns[0]?.sleepHours || 7.5} stress={currentClient.checkIns[0]?.stressLevel > 5 ? 'High' : 'Optimal'} />
+
+            <div className="grid lg:grid-cols-2 gap-8">
+              <ClientProgressSummary logs={currentClient.logs} />
+              
+              <div className="bg-slate-900 p-8 rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col justify-between">
+                 <div>
+                    <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-6 italic">Next Protocol Session</h4>
+                    <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase mb-4">
+                       {currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex].title}
+                    </h3>
+                    <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                       Session {currentClient.currentWorkoutIndex + 1} of {currentClient.plan?.workoutSplit.length}. Optimized for V-Taper aesthetics.
+                    </p>
+                 </div>
+                 <button 
+                   onClick={() => setActiveTab('workout')}
+                   className="mt-8 w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:bg-cyan-500 hover:text-white transition-all shadow-xl italic"
+                 >
+                   Initiate Training Protocol
+                 </button>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              <div onClick={() => setActiveTab('performance')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
+                 <span className="text-2xl mb-3 block">📈</span>
+                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">View Performance Review</p>
+              </div>
+              <div onClick={() => setActiveTab('strength')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
+                 <span className="text-2xl mb-3 block">⚔️</span>
+                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">Strength Matrix Stats</p>
+              </div>
+              <div onClick={() => setActiveTab('vault')} className="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 hover:border-cyan-500 transition cursor-pointer text-center group">
+                 <span className="text-2xl mb-3 block">🔐</span>
+                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition">Access MuskyFit Vault</p>
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen">
+      <Navigation role={role} setRole={setRole} activeTab={activeTab} setActiveTab={setActiveTab} />
+      <main className="max-w-7xl mx-auto py-10">
+        {renderContent()}
+      </main>
+    </div>
+  );
+};
+
+export default App;
