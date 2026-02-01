@@ -9,7 +9,6 @@ interface WorkoutTrackerProps {
 }
 
 const WorkoutTracker: React.FC<WorkoutTrackerProps> = ({ currentWorkout, previousProgress, onFinish }) => {
-  // Regex parser to extract first number from strings like "8-12" or "To Failure (approx 10)"
   const parseReps = (val: string): number => {
     const match = val.match(/\d+/);
     return match ? parseInt(match[0]) : 10;
@@ -123,7 +122,7 @@ const WorkoutTracker: React.FC<WorkoutTrackerProps> = ({ currentWorkout, previou
         </div>
       )}
 
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-6">
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-full max-sm px-6">
         <button onClick={() => onFinish(exerciseLogs)} className="w-full py-6 bg-white text-black font-black uppercase tracking-[0.3em] rounded-2xl shadow-2xl hover:bg-cyan-500 hover:text-white transition-all italic border-4 border-slate-900">
           Finish Session
         </button>
