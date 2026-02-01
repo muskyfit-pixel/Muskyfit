@@ -11,67 +11,32 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = ({ role, setRole, activeTab, setActiveTab }) => {
   return (
-    <nav className="bg-slate-950 border-b border-slate-800 sticky top-0 z-50 shadow-xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 cyan-glow">
-               <svg viewBox="0 0 100 100" className="w-8 h-8">
-                  <path d="M20 80 L20 20 L50 50 L80 20 L80 80" fill="none" stroke="url(#metallic)" strokeWidth="12" strokeLinecap="square" />
-                  <path d="M40 55 L70 55" fill="none" stroke="#06b6d4" strokeWidth="8" />
-                  <defs>
-                    <linearGradient id="metallic" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#e2e8f0" />
-                      <stop offset="50%" stopColor="#94a3b8" />
-                      <stop offset="100%" stopColor="#e2e8f0" />
-                    </linearGradient>
-                  </defs>
-               </svg>
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-xl font-black tracking-tighter metallic-text">MUSKYFIT</span>
-              <span className="text-[10px] font-bold tracking-[0.2em] text-cyan-500 uppercase">Personal Coaching</span>
-            </div>
-          </div>
-          
-          <div className="hidden lg:flex space-x-4">
-            {role === 'COACH' ? (
-              <button 
-                onClick={() => setActiveTab('coach-dashboard')}
-                className={`${activeTab === 'coach-dashboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}
-              >
-                Command Center
-              </button>
-            ) : (
-              <>
-                <button onClick={() => setActiveTab('client-dashboard')} className={`${activeTab === 'client-dashboard' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Cockpit</button>
-                <button onClick={() => setActiveTab('log')} className={`${activeTab === 'log' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Log</button>
-                <button onClick={() => setActiveTab('workout')} className={`${activeTab === 'workout' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Train</button>
-                <button onClick={() => setActiveTab('radar')} className={`${activeTab === 'radar' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Radar</button>
-                <button onClick={() => setActiveTab('check-in')} className={`${activeTab === 'check-in' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Check-In</button>
-                <button onClick={() => setActiveTab('strength')} className={`${activeTab === 'strength' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Matrix</button>
-                <button onClick={() => setActiveTab('photos')} className={`${activeTab === 'photos' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Progress</button>
-                <button onClick={() => setActiveTab('plans')} className={`${activeTab === 'plans' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Protocol</button>
-                <button onClick={() => setActiveTab('concierge')} className={`${activeTab === 'concierge' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'} hover:text-white px-1 py-2 text-[9px] font-black uppercase tracking-widest transition`}>Support</button>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-4">
-            <select 
-              value={role}
-              onChange={(e) => {
-                const newRole = e.target.value as UserRole;
-                setRole(newRole);
-                setActiveTab(newRole === 'COACH' ? 'coach-dashboard' : 'client-dashboard');
-              }}
-              className="bg-slate-900 text-[9px] border border-slate-700 rounded-md px-3 py-1.5 text-slate-300 font-black uppercase tracking-widest focus:ring-1 focus:ring-cyan-500 outline-none"
-            >
-              <option value="COACH">COACH VIEW</option>
-              <option value="CLIENT">CLIENT VIEW</option>
-            </select>
-          </div>
+    <nav className="bg-slate-950 border-b border-slate-800 sticky top-0 z-50">
+      <div className="max-w-5xl mx-auto px-4 h-20 flex justify-between items-center">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('client-dashboard')}>
+          <div className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center font-bold text-cyan-500 shadow-lg">M</div>
+          <span className="text-xl font-bold tracking-tight text-white italic">MUSKYFIT</span>
         </div>
+        
+        <div className="hidden md:flex space-x-6">
+          {role === 'COACH' ? (
+            <button onClick={() => setActiveTab('coach-dashboard')} className="text-sm font-bold text-white uppercase tracking-wider">Coach Dashboard</button>
+          ) : (
+            <>
+              <button onClick={() => setActiveTab('client-dashboard')} className={`text-xs font-bold uppercase tracking-wider ${activeTab === 'client-dashboard' ? 'text-cyan-500' : 'text-slate-400'}`}>Dashboard</button>
+              <button onClick={() => setActiveTab('plans')} className={`text-xs font-bold uppercase tracking-wider ${activeTab === 'plans' ? 'text-cyan-500' : 'text-slate-400'}`}>My Plan</button>
+              <button onClick={() => setActiveTab('log')} className={`text-xs font-bold uppercase tracking-wider ${activeTab === 'log' ? 'text-cyan-500' : 'text-slate-400'}`}>Log Food</button>
+              <button onClick={() => setActiveTab('concierge')} className={`text-xs font-bold uppercase tracking-wider ${activeTab === 'concierge' ? 'text-cyan-500' : 'text-slate-400'}`}>Support</button>
+            </>
+          )}
+        </div>
+
+        <button 
+          onClick={() => setRole(role === 'COACH' ? 'CLIENT' : 'COACH')}
+          className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+        >
+          {role === 'COACH' ? 'View as Client' : 'Coach Mode'}
+        </button>
       </div>
     </nav>
   );
