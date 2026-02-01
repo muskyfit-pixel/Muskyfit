@@ -8,12 +8,7 @@ import DailyLogging from './components/DailyLogging';
 import WorkoutTracker from './components/WorkoutTracker';
 import WeeklyCheckInForm from './components/WeeklyCheckInForm';
 import ReadinessHUD from './components/ReadinessHUD';
-import MuskyFitVault from './components/MuskyFitVault';
-import TransformationHub from './components/TransformationHub';
 import MuskyFitSupport from './components/MuskyFitSupport';
-import WeeklyReviewView from './components/WeeklyReviewView';
-import StrengthMatrix from './components/StrengthMatrix';
-import ResourceRadar from './components/ResourceRadar';
 import { generatePersonalizedPlan } from './services/geminiService';
 import { MOCK_CLIENTS } from './constants';
 import { Client, IntakeData } from './types';
@@ -71,7 +66,7 @@ const App = () => {
     setActiveTab('client-dashboard');
   };
 
-  const handleFinaliseProtocol = async (clientId: string) => {
+  const handleFinalisePlan = async (clientId: string) => {
     setIsLoading(true);
     try {
       const client = clients.find(c => c.id === clientId);
@@ -94,7 +89,7 @@ const App = () => {
         <CoachDashboard 
           clients={clients} 
           pendingClient={clients.find(c => c.planStatus === 'CONSULTATION_SUBMITTED') || null} 
-          onFinalise={handleFinaliseProtocol} 
+          onFinalise={handleFinalisePlan} 
           onSendReview={(id, rev) => setClients(prev => prev.map(c => c.id === id ? {...c, checkIns: [{...c.checkIns[0], review: rev}, ...c.checkIns.slice(1)]} : c))}
           isLoading={isLoading} 
         />
@@ -108,9 +103,9 @@ const App = () => {
     if (currentClient.planStatus === 'CONSULTATION_SUBMITTED') {
       return (
         <div className="max-w-2xl mx-auto text-center py-20 px-6 bg-slate-900 rounded-3xl border border-slate-800">
-          <div className="text-4xl mb-6">⏳</div>
-          <h2 className="text-3xl font-bold text-white mb-4">Application Submitted</h2>
-          <p className="text-slate-400 mb-8">Hi {currentClient.profile.name}, your information has been sent to the coach. We are reviewing your details and will create your bespoke plan shortly.</p>
+          <div className="text-4xl mb-6">📝</div>
+          <h2 className="text-3xl font-bold text-white mb-4">Application Sent</h2>
+          <p className="text-slate-400 mb-8">Thanks {currentClient.profile.name}. Your details are being reviewed. Your bespoke 12-week programme will be ready to view shortly.</p>
           <button onClick={() => setRole('COACH')} className="bg-white text-black px-6 py-2 rounded-lg font-bold text-sm">Review as Coach</button>
         </div>
       );
@@ -127,44 +122,39 @@ const App = () => {
           <div className="space-y-8 pb-20">
             <div className="flex justify-between items-center bg-slate-900 p-6 rounded-2xl border border-slate-800">
                <div>
-                  <h2 className="text-2xl font-bold text-white">Welcome back, {currentClient.profile.name}</h2>
-                  <p className="text-sm text-slate-500">Your plan is active and on track.</p>
-               </div>
-               <div className="text-right">
-                  <p className="text-xs text-slate-500 uppercase font-bold">Goal</p>
-                  <p className="text-cyan-500 font-bold">{currentClient.intake?.goal.replace('_', ' ')}</p>
+                  <h2 className="text-2xl font-bold text-white">Welcome, {currentClient.profile.name}</h2>
+                  <p className="text-sm text-slate-500">Your bespoke training is ready.</p>
                </div>
             </div>
 
             <ReadinessHUD 
-              score={currentClient.performanceStatus === 'ON_TRACK' ? 90 : 50} 
-              sleep={currentClient.checkIns[0]?.sleepHours || 7} 
+              score={currentClient.performanceStatus === 'ON_TRACK' ? 100 : 50} 
+              sleep={currentClient.checkIns[0]?.sleepHours || 8} 
               stress={currentClient.checkIns[0]?.stressLevel > 6 ? 'High' : 'Normal'} 
             />
 
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800">
-                 <h3 className="text-sm font-bold text-slate-500 uppercase mb-6">Today's Training</h3>
-                 <p className="text-2xl font-bold text-white mb-2">{currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex]?.title || 'Rest Day'}</p>
-                 <p className="text-sm text-slate-400 mb-6">Follow your bespoke programme for maximum results.</p>
-                 <button onClick={() => setActiveTab('workout')} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-cyan-500 hover:text-white transition">Start Workout</button>
+                 <h3 className="text-sm font-bold text-slate-500 uppercase mb-4">Current Workout</h3>
+                 <p className="text-2xl font-bold text-white mb-6">{currentClient.plan?.workoutSplit[currentClient.currentWorkoutIndex]?.title || 'Rest Day'}</p>
+                 <button onClick={() => setActiveTab('workout')} className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-cyan-500 hover:text-white transition shadow-xl">Start Training</button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                  <button onClick={() => setActiveTab('log')} className="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition">
-                    <span className="text-2xl mb-2 block">🍎</span>
+                    <span className="text-2xl mb-2 block">🍽️</span>
                     <p className="text-xs font-bold text-white">Log Food</p>
                  </button>
                  <button onClick={() => setActiveTab('plans')} className="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition">
-                    <span className="text-2xl mb-2 block">🍽️</span>
-                    <p className="text-xs font-bold text-white">Meal Plan</p>
+                    <span className="text-2xl mb-2 block">📋</span>
+                    <p className="text-xs font-bold text-white">Plan</p>
                  </button>
                  <button onClick={() => setActiveTab('concierge')} className="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition">
                     <span className="text-2xl mb-2 block">💬</span>
                     <p className="text-xs font-bold text-white">Coach Chat</p>
                  </button>
                  <button onClick={() => setActiveTab('check-in')} className="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center hover:border-cyan-500 transition">
-                    <span className="text-2xl mb-2 block">📋</span>
+                    <span className="text-2xl mb-2 block">📅</span>
                     <p className="text-xs font-bold text-white">Check-in</p>
                  </button>
               </div>
@@ -177,7 +167,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 font-sans">
       <Navigation role={role} setRole={setRole} activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="max-w-5xl mx-auto py-8 px-4">
+      <main className="max-w-4xl mx-auto py-8 px-4">
         {renderContent()}
       </main>
     </div>
