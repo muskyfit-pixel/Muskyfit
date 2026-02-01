@@ -1,15 +1,48 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { WeeklyReview } from '../types';
+import { generateWeeklyAudioBriefing } from '../services/geminiService';
 
 interface WeeklyReviewViewProps {
   reviews: WeeklyReview[];
 }
 
 const WeeklyReviewView: React.FC<WeeklyReviewViewProps> = ({ reviews }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  
   const latest = reviews[reviews.length - 1];
 
   if (!latest) return <div className="text-center py-20 italic text-slate-500">No performance reviews published yet.</div>;
+
+  const handlePlayBriefing = async () => {
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      audio.play();
+      setIsPlaying(true);
+      audio.onended = () => setIsPlaying(false);
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const briefingText = `Review for ${latest.date}. Adherence score of ${latest.adherenceScore} percent. ${latest.coachMessage}. Your directives for next week are: ${latest.directives.join(', ')}.`;
+      const base64Audio = await generateWeeklyAudioBriefing(briefingText);
+      if (base64Audio) {
+        const url = `data:audio/mp3;base64,${base64Audio}`;
+        setAudioUrl(url);
+        const audio = new Audio(url);
+        audio.play();
+        setIsPlaying(true);
+        audio.onended = () => setIsPlaying(false);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto pb-40 space-y-10 px-4 animate-in fade-in duration-700">
@@ -24,15 +57,29 @@ const WeeklyReviewView: React.FC<WeeklyReviewViewProps> = ({ reviews }) => {
         </div>
         
         <div className="relative z-10">
-          <div className="flex items-center gap-6 mb-12">
-            <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black ${latest.status === 'GREEN' ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' : 'bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}>
-              {latest.adherenceScore}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+            <div className="flex items-center gap-6">
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black ${latest.status === 'GREEN' ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' : 'bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}>
+                {latest.adherenceScore}
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Weekly Score</p>
+                <h3 className="text-3xl font-black text-white italic uppercase">{latest.status === 'GREEN' ? 'ELITE ADHERENCE' : 'NEEDS FOCUS'}</h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Review Date: {latest.date}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Weekly Score</p>
-              <h3 className="text-3xl font-black text-white italic uppercase">{latest.status === 'GREEN' ? 'ELITE ADHERENCE' : 'NEEDS FOCUS'}</h3>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Review Date: {latest.date}</p>
-            </div>
+            
+            <button 
+              onClick={handlePlayBriefing}
+              disabled={isGenerating}
+              className={`flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all ${isPlaying ? 'bg-cyan-600 border-cyan-400 text-white animate-pulse' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'}`}
+            >
+              <span className="text-xl">{isGenerating ? '⌛' : isPlaying ? '🔊' : '🎧'}</span>
+              <div className="text-left">
+                <p className="text-[8px] font-black uppercase tracking-widest">Coach Briefing</p>
+                <p className="text-[10px] font-black italic">{isGenerating ? 'Synthesizing...' : isPlaying ? 'Now Playing' : 'Listen Now'}</p>
+              </div>
+            </button>
           </div>
 
           <div className="prose prose-invert max-w-none">
@@ -43,7 +90,7 @@ const WeeklyReviewView: React.FC<WeeklyReviewViewProps> = ({ reviews }) => {
           </div>
 
           <div className="mt-12 space-y-4">
-             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Protocol Adjustments for Next Week</h4>
+             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Protocol Adjustments</h4>
              <div className="grid md:grid-cols-3 gap-6">
                 {latest.directives.map((d, i) => (
                    <div key={i} className="p-6 bg-slate-950 rounded-[2rem] border border-slate-800 flex flex-col gap-4">
@@ -56,24 +103,19 @@ const WeeklyReviewView: React.FC<WeeklyReviewViewProps> = ({ reviews }) => {
         </div>
       </div>
 
-      {reviews.length > 1 && (
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800">
-           <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 px-4">Historical Performance</h4>
-           <div className="space-y-3">
-              {reviews.slice(0, -1).reverse().map(rev => (
-                <div key={rev.id} className="flex justify-between items-center p-6 bg-slate-950 rounded-2xl border border-slate-800">
-                   <div>
-                      <p className="text-xs font-black text-white">{rev.date}</p>
-                      <p className="text-[9px] text-slate-600 font-bold uppercase">Archive Record</p>
-                   </div>
-                   <div className="text-right">
-                      <p className="text-xl font-black text-cyan-500">{rev.adherenceScore}%</p>
-                   </div>
-                </div>
-              ))}
-           </div>
-        </div>
-      )}
+      <div className="bg-slate-900 p-10 rounded-[2.5rem] border border-slate-800">
+         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 text-center italic">Discipline Heatmap</h4>
+         <div className="flex flex-wrap gap-2 justify-center">
+            {Array.from({ length: 84 }).map((_, i) => (
+               <div 
+                 key={i} 
+                 className={`w-4 h-4 rounded-sm ${i % 7 === 0 ? 'bg-cyan-600 shadow-[0_0_5px_rgba(6,182,212,0.4)]' : i % 5 === 0 ? 'bg-cyan-900/30' : 'bg-slate-950 border border-slate-800'}`}
+                 title={`Day ${i + 1}`}
+               />
+            ))}
+         </div>
+         <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest text-center mt-6 italic">Historical Ritual Adherence (Last 12 Weeks)</p>
+      </div>
     </div>
   );
 };
