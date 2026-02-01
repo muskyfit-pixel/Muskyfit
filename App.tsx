@@ -88,6 +88,11 @@ const App = () => {
     setActiveTab('client-dashboard');
   };
 
+  const handleCheckInSubmit = (checkIn: WeeklyCheckIn) => {
+    setClients(prev => prev.map(c => c.id === currentClientId ? { ...c, checkIns: [checkIn, ...c.checkIns] } : c));
+    setActiveTab('client-dashboard');
+  };
+
   const handleWorkoutFinish = (exerciseLogs: ExerciseLog[]) => {
     if (!currentClient || !currentClient.plan) return;
     const workoutCount = currentClient.plan.workoutSplit.length;
@@ -138,6 +143,8 @@ const App = () => {
           previousProgress={currentClient.exerciseProgress} 
           onFinish={handleWorkoutFinish} 
         />;
+      case 'check-in':
+        return <WeeklyCheckInForm onSubmit={handleCheckInSubmit} />;
       case 'concierge': 
         return <MuskyFitSupport client={currentClient} />;
       case 'vault': 
@@ -158,29 +165,33 @@ const App = () => {
             <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl">
                <ReadinessHUD score={85} sleep={7.5} stress="Zen" />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-               <button onClick={() => setActiveTab('workout')} className="p-8 bg-white rounded-3xl text-black font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-2xl block mb-2">🏋️</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+               <button onClick={() => setActiveTab('workout')} className="p-6 bg-white rounded-3xl text-black font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
+                 <span className="text-xl block mb-2">🏋️</span>
                  Train
                </button>
-               <button onClick={() => setActiveTab('log')} className="p-8 bg-cyan-600 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-2xl block mb-2">🥗</span>
+               <button onClick={() => setActiveTab('log')} className="p-6 bg-cyan-600 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
+                 <span className="text-xl block mb-2">🥗</span>
                  Macros
                </button>
-               <button onClick={() => setActiveTab('concierge')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-2xl block mb-2">🤖</span>
-                 Concierge
+               <button onClick={() => setActiveTab('check-in')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
+                 <span className="text-xl block mb-2">📋</span>
+                 Check-In
                </button>
-               <button onClick={() => setActiveTab('vault')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-2xl block mb-2">🧠</span>
+               <button onClick={() => setActiveTab('concierge')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
+                 <span className="text-xl block mb-2">🤖</span>
+                 Support
+               </button>
+               <button onClick={() => setActiveTab('vault')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
+                 <span className="text-xl block mb-2">🧠</span>
                  Vault
                </button>
-               <button onClick={() => setActiveTab('photos')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-2xl block mb-2">📸</span>
+               <button onClick={() => setActiveTab('photos')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
+                 <span className="text-xl block mb-2">📸</span>
                  Photos
                </button>
-               <button onClick={() => setActiveTab('plans')} className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
-                 <span className="text-2xl block mb-2">📊</span>
+               <button onClick={() => setActiveTab('plans')} className="p-6 bg-slate-900 border border-slate-800 rounded-3xl text-white font-black italic uppercase text-left hover:scale-[1.02] transition shadow-xl">
+                 <span className="text-xl block mb-2">📊</span>
                  Plan
                </button>
             </div>
@@ -193,7 +204,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-[#070b14]">
       <Navigation role={role} setRole={setRole} activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="max-w-7xl mx-auto pt-12">{renderContent()}</main>
+      <main className="max-w-7xl mx-auto pt-12 pb-24">{renderContent()}</main>
     </div>
   );
 };
