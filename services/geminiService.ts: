@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { IntakeData, Meal, DailyLog, WeeklyCheckIn, FoodItem } from "../types";
+import { IntakeData, Meal, DailyLog, WeeklyCheckIn, FoodItem, WeeklyReview } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -118,6 +119,43 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
   return JSON.parse(text);
 }
 
+export async function analyzeWeeklyPerformance(name: string, gender: string, age: number, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<WeeklyReview> {
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: `Analyze performance for ${name} (${gender}, ${age}y/o).
+    Logs (Last 7 days): ${logs.map(l => `Steps:${l.steps}, Cal:${l.caloriesConsumed}, Trained:${l.workoutCompleted}`).join(' | ')}.
+    Check-in: Energy:${checkIn.energyLevel}, Stress:${checkIn.stressLevel}, Sleep:${checkIn.sleepHours}, Comments:"${checkIn.clientComments}".
+    
+    Output a structured weekly review for the MUSKYFIT Elite Team.
+    Instructions:
+    - If female 30+, prioritize recovery and cortisol management.
+    - If male, focus on strength progress and adherence.
+    - Assign an adherence score (1-100).
+    - Provide 3 punchy directives for next week.
+    - Status can be GREEN (on track), AMBER (needs focus), RED (critical).`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          adherenceScore: { type: Type.NUMBER },
+          coachMessage: { type: Type.STRING },
+          directives: { type: Type.ARRAY, items: { type: Type.STRING } },
+          status: { type: Type.STRING, description: "GREEN, AMBER, or RED" }
+        },
+        required: ["adherenceScore", "coachMessage", "directives", "status"]
+      }
+    }
+  });
+
+  const res = JSON.parse(response.text);
+  return {
+    id: 'rev_' + Date.now(),
+    date: new Date().toISOString().split('T')[0],
+    ...res
+  };
+}
+
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
@@ -171,17 +209,4 @@ export async function getMealAlternatives(meal: Meal): Promise<string[]> {
   } catch { 
     return []; 
   }
-}
-
-export async function generatePerformanceReport(name: string, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<string> {
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Synthesize performance data for ${name}.
-    Compliance: ${logs.filter(l => l.workoutCompleted).length} training sessions.
-    Sleep: ${checkIn.sleepHours}h. Stress: ${checkIn.stressLevel}/10.`,
-    config: {
-      systemInstruction: "You are the head coach at MUSKYFIT. Provide an elite performance summary. High level, professional, and encouraging."
-    }
-  });
-  return response.text || "Report pending...";
 }
