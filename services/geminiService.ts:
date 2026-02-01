@@ -6,12 +6,14 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
   const response = await ai.models.generateContent({
     model: "gemini-3-pro-preview",
-    contents: `Build a 12-week protocol for ${data.name}. 
+    contents: `Build a highly elite 12-week physique protocol for ${data.name}. 
     Biometrics: ${data.weight}kg, ${data.height}cm. 
-    Niche: Asian Male Professional. Goal: ${data.goal}. 
-    Preference: ${data.culturalPreference} (${data.dietPreference}).
-    Religious/Cultural Exclusions: ${data.religiousExclusions}.
-    Include macro-equivalent meal alternatives in 'substitutes' and high-performance coach advice.`,
+    Target Audience: High-performance South Asian Male Professional.
+    Goal: ${data.goal} (Focus on V-Taper aesthetics). 
+    Cultural Context: ${data.culturalPreference} (${data.dietPreference}).
+    Exclusions: ${data.religiousExclusions}.
+    Include Indian superfoods like Makhana, Ghee (controlled), and Daal as high-protein sources.
+    Provide coaching advice focused on high-pressure corporate lifestyles.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -80,8 +82,7 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
                       reps: { type: Type.STRING },
                       targetRpe: { type: Type.NUMBER },
                       tempo: { type: Type.STRING },
-                      notes: { type: Type.STRING },
-                      isWarmup: { type: Type.BOOLEAN }
+                      notes: { type: Type.STRING }
                     },
                     required: ["id", "name", "sets", "reps"]
                   } 
@@ -98,14 +99,14 @@ export async function generatePersonalizedPlan(data: IntakeData): Promise<any> {
   });
   
   const text = response.text;
-  if (!text) throw new Error("Empty response from AI");
+  if (!text) throw new Error("AI Protocol Generation Failed");
   return JSON.parse(text);
 }
 
 export async function searchUniversalFood(query: string): Promise<FoodItem | null> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Nutritional values for 100g of ${query}.`,
+    contents: `Nutritional data for 100g of ${query}. Use standard USDA or Indian Food Composition Tables.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -137,7 +138,7 @@ export async function searchUniversalFood(query: string): Promise<FoodItem | nul
 export async function getMealAlternatives(meal: Meal): Promise<string[]> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Suggest 3 alternative meal names for: ${meal.name} (${meal.macros.calories}kcal, P:${meal.macros.p}g, C:${meal.macros.c}g, F:${meal.macros.f}g). Ensure they are macro-equivalent.`,
+    contents: `List 3 alternative high-protein meals for: ${meal.name}. Target Macros: ${meal.macros.calories}kcal, P:${meal.macros.p}g, C:${meal.macros.c}g, F:${meal.macros.f}g.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -160,12 +161,13 @@ export async function getMealAlternatives(meal: Meal): Promise<string[]> {
 export async function generatePerformanceReport(name: string, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<string> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Analyze performance for ${name}.
-    Logs (steps/calories): ${logs.slice(0, 5).map(l => `${l.steps}/${l.caloriesConsumed}`).join(', ')}.
-    Check-in: Energy ${checkIn.energyLevel}/10, Stress ${checkIn.stressLevel}/10, Sleep ${checkIn.sleepHours}h.`,
+    contents: `Synthesize performance data for ${name}.
+    Steps: ${logs.map(l => l.steps).slice(0, 7).join(',')}.
+    Compliance: ${logs.filter(l => l.workoutCompleted).length} training sessions this week.
+    Stress/Sleep: ${checkIn.stressLevel}/10 stress, ${checkIn.sleepHours}h sleep.`,
     config: {
-      systemInstruction: "You are an elite fitness coach. Provide a brief, high-impact performance summary (2-3 sentences)."
+      systemInstruction: "You are the head coach at MUSKYFIT. Provide a high-level, encouraging but firm performance summary in 3 concise sentences."
     }
   });
-  return response.text || "Analysis unavailable.";
+  return response.text || "Report pending...";
 }
