@@ -124,10 +124,10 @@ export async function generateWeeklyAudioBriefing(text: string): Promise<string 
   return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
 }
 
-export async function analyzeWeeklyPerformance(name: string, gender: string, age: number, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<WeeklyReview> {
+export async function analyzeWeeklyPerformance(name: string, gender: string, age: number, logs: DailyLog[], checkIn: WeeklyCheckIn): Promise<WeeklyReview & { sentiment: string }> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Analyze performance for ${name} (${gender}, ${age}y/o). Logs: ${logs.length} days. Check-in: Energy:${checkIn.energyLevel}, Stress:${checkIn.stressLevel}.`,
+    contents: `Analyze performance for ${name} (${gender}, ${age}y/o). Logs: ${logs.length} days. Check-in: Energy:${checkIn.energyLevel}, Stress:${checkIn.stressLevel}, Comments: "${checkIn.clientComments}".`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -136,9 +136,10 @@ export async function analyzeWeeklyPerformance(name: string, gender: string, age
           adherenceScore: { type: Type.NUMBER },
           coachMessage: { type: Type.STRING },
           directives: { type: Type.ARRAY, items: { type: Type.STRING } },
-          status: { type: Type.STRING }
+          status: { type: Type.STRING },
+          sentiment: { type: Type.STRING, description: "One word: MOTIVATED, BURNT_OUT, NEUTRAL, or FRUSTRATED" }
         },
-        required: ["adherenceScore", "coachMessage", "directives", "status"]
+        required: ["adherenceScore", "coachMessage", "directives", "status", "sentiment"]
       }
     }
   });
